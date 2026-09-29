@@ -1,0 +1,89 @@
+version: '3.9'
+
+networks:
+  web:
+    external: true
+    name: web_net
+  schulschach_internal:
+    internal: true
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: schulschach-app:local
+    container_name: schulschach_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://schulschach:${POSTGRES_PASSWORD}@db:5432/schulschach?schema=public
+      NEXT_TELEMETRY_DISABLED: "1"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+      - /app/.next/cache:rw,noexec,nosuid,nodev,size=128m
+    pids_limit: 150
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          memory: 128M
+    networks:
+      - web
+      - schulschach_internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web_net"
+      - "traefik.http.routers.schulschach.rule=Host(`chess.schmidbauer.jetzt`)"
+      - "traefik.http.routers.schulschach.entrypoints=websecure"
+      - "traefik.http.routers.schulschach.tls=true"
+      - "traefik.http.routers.schulschach.tls.certresolver=myresolver"
+      - "traefik.http.services.schulschach.loadbalancer.server.port=3000"
+
+  db:
+    image: postgres:16-alpine
+    container_name: schulschach_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: schulschach
+      POSTGRES_USER: schulschach
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth=scram-sha-256"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    shm_size: 128mb
+    pids_limit: 100
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          memory: 128M
+    volumes:
+      - schulschach_postgres:/var/lib/postgresql/data
+    networks:
+      - schulschach_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schulschach -d schulschach"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  schulschach_postgres:

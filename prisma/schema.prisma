@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TRAINER
+}
+
+enum AttemptResult {
+  SOLVED_INDEPENDENT
+  SOLVED_WITH_HINT
+  SOLUTION_VIEWED
+  ABANDONED
+}
+
+model User {
+  id          String    @id @default(cuid())
+  alias       String    @unique
+  codeHash    String    @unique
+  role        Role      @default(STUDENT)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  lastLoginAt DateTime?
+  attempts    Attempt[]
+}
+
+model Puzzle {
+  id            String    @id
+  fen           String
+  solutionUci   String
+  rating        Int
+  themes        String[]
+  title         String
+  hint          String
+  published     Boolean   @default(true)
+  attempts      Attempt[]
+}
+
+model Attempt {
+  id              String        @id @default(cuid())
+  userId          String
+  puzzleId        String
+  result          AttemptResult
+  hintsUsed       Int           @default(0)
+  wrongAttempts   Int           @default(0)
+  durationSeconds Int           @default(0)
+  createdAt       DateTime      @default(now())
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  puzzle          Puzzle        @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+}

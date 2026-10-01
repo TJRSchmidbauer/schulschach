@@ -22,24 +22,71 @@ enum AttemptResult {
 model User {
   id          String    @id @default(cuid())
   alias       String    @unique
-  codeHash    String    @unique
   role        Role      @default(STUDENT)
+  codeLookup  String    @unique
+  codeHash    String
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now())
   lastLoginAt DateTime?
+  sessions    Session[]
   attempts    Attempt[]
 }
 
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  role      Role
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model LearningPath {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  modules     Module[]
+}
+
+model Module {
+  id             String         @id @default(cuid())
+  learningPathId String
+  learningPath   LearningPath   @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  title          String
+  contentMd      String
+  sortOrder      Int            @default(0)
+  active         Boolean        @default(true)
+  modulePuzzles  ModulePuzzle[]
+}
+
 model Puzzle {
-  id            String    @id
+  id            String         @id
   fen           String
   solutionUci   String
   rating        Int
   themes        String[]
   title         String
   hint          String
-  published     Boolean   @default(true)
+  explanation   String
+  published     Boolean        @default(true)
+  modulePuzzles ModulePuzzle[]
   attempts      Attempt[]
+}
+
+model ModulePuzzle {
+  moduleId  String
+  puzzleId  String
+  sortOrder Int
+  module    Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  puzzle    Puzzle @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+
+  @@id([moduleId, puzzleId])
 }
 
 model Attempt {
@@ -53,4 +100,6 @@ model Attempt {
   createdAt       DateTime      @default(now())
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   puzzle          Puzzle        @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

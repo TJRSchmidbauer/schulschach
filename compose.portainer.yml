@@ -28,15 +28,13 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    read_only: true
     tmpfs:
-      - /tmp:rw,noexec,nosuid,nodev,size=64m
-      - /app/.next/cache:rw,noexec,nosuid,nodev,size=128m
+      - /tmp:noexec,nosuid,nodev,size=64m
     pids_limit: 150
     deploy:
       resources:
         limits:
-          cpus: "0.75"
+          cpus: '0.75'
           memory: 512M
         reservations:
           memory: 128M
@@ -44,13 +42,13 @@ services:
       - web
       - schulschach_internal
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=web_net"
-      - "traefik.http.routers.schulschach.rule=Host(`chess.schmidbauer.jetzt`)"
-      - "traefik.http.routers.schulschach.entrypoints=websecure"
-      - "traefik.http.routers.schulschach.tls=true"
-      - "traefik.http.routers.schulschach.tls.certresolver=myresolver"
-      - "traefik.http.services.schulschach.loadbalancer.server.port=3000"
+      - traefik.enable=true
+      - traefik.docker.network=web_net
+      - traefik.http.routers.schulschach.rule=Host(`chess.schmidbauer.jetzt`)
+      - traefik.http.routers.schulschach.entrypoints=websecure
+      - traefik.http.routers.schulschach.tls=true
+      - traefik.http.routers.schulschach.tls.certresolver=myresolver
+      - traefik.http.services.schulschach.loadbalancer.server.port=3000
 
   db:
     image: postgres:16-alpine
@@ -70,7 +68,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.75"
+          cpus: '0.75'
           memory: 512M
         reservations:
           memory: 128M

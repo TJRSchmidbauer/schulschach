@@ -7,24 +7,23 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "hash:trainer": "node scripts/trainer-hash.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
-    "argon2": "^0.41.1",
     "chess.js": "^1.2.0",
     "next": "^15.2.0",
+    "prisma": "^6.6.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
     "react-chessboard": "^4.7.2",
-    "zod": "^3.24.2"
+    "react-dom": "^19.0.0",
+    "tsx": "^4.19.3"
   },
   "devDependencies": {
     "@types/node": "^22.13.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "prisma": "^6.6.0",
-    "tsx": "^4.19.3",
     "typescript": "^5.7.3"
   }
 }

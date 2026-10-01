@@ -8,6 +8,9 @@ COPY package.json ./
 RUN npm install
 
 FROM deps AS builder
+ARG DATABASE_URL="postgresql://build:build@localhost:5432/build"
+ARG AUTH_SECRET="build-only"
+ENV DATABASE_URL=$DATABASE_URL AUTH_SECRET=$AUTH_SECRET
 COPY . .
 RUN npx prisma generate && npm run build
 

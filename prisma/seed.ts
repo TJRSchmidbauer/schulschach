@@ -1,8 +1,20 @@
 import crypto from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
-import { scryptHash, codeLookupHash } from '../src/lib/auth';
 
 const db = new PrismaClient();
+
+function scryptHash(code: string) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(code, salt, 64, { N: 16384, r: 8, p: 1 }).toString('hex');
+  return `scrypt:16384:8:1:${salt}:${hash}`;
+}
+
+function codeLookupHash(code: string) {
+  return crypto
+    .createHmac('sha256', process.env.AUTH_SECRET ?? 'dev-secret')
+    .update(code.toUpperCase().trim())
+    .digest('hex');
+}
 
 const PUZZLES = [
   { id: 'bauern-01', fen: '6k1/pp3ppp/8/4r3/8/8/1B3PPP/6K1 w - - 0 1', solutionUci: 'b2e5', rating: 650, themes: ['hangingPiece', 'bishop'], title: 'Läufer schlägt Turm', hint: 'Der Turm auf e5 ist ungedeckt. Dein Läufer zieht diagonal.', explanation: 'Der Turm auf e5 wird von keiner schwarzen Figur gedeckt. Dein Läufer auf b2 greift e5 über die Diagonale an und gewinnt den Turm.' },
@@ -19,6 +31,10 @@ const PUZZLES = [
 ];
 
 async function main() {
+  console.log('[seed] Prüfe Datenbankverbindung ...');
+  await db.$executeRaw`SELECT 1`;
+  console.log('[seed] Verbindung OK.');
+
   const path = await db.learningPath.upsert({
     where: { slug: 'startklar' },
     update: {},
@@ -31,8 +47,8 @@ async function main() {
   });
 
   const modules = [
-    { title: 'Das Brett und die Figuren', contentMd: 'Jede Figur zieht auf ihre eigene Art. Halte Ausschau nach **ungedeckten** gegnerischen Figuren – sie kannst du umsonst schlagen.', puzzleIds: ['bauern-01', 'bauern-02'] },
-    { title: 'Schach und Matt', contentMd: 'Im **Schach** steht der König unter direktem Angriff. **Matt** bedeutet: Der König hat kein Entrinnen mehr.', puzzleIds: ['matt-01', 'matt-02'] },
+    { title: 'Das Brett und die Figuren', contentMd: 'Jede Figur zieht auf ihre eigene Art. Halte Ausschau nach ungedeckten gegnerischen Figuren – sie kannst du umsonst schlagen.', puzzleIds: ['bauern-01', 'bauern-02'] },
+    { title: 'Schach und Matt', contentMd: 'Im Schach steht der König unter direktem Angriff. Matt bedeutet: Der König hat kein Entrinnen mehr.', puzzleIds: ['matt-01', 'matt-02'] },
     { title: 'Matt in einem Zug', contentMd: 'Oft steht Matt zum Greifen nah. Prüfe immer: Wohin könnte der König fliehen?', puzzleIds: ['matt-03', 'matt-04', 'matt-05'] },
     { title: 'Taktik entdecken', contentMd: 'Fesselung, Umwandlung und Gabel sind die wichtigsten Gewinnwerkzeuge.', puzzleIds: ['taktik-01', 'taktik-02', 'taktik-03', 'taktik-04'] },
   ];
@@ -40,6 +56,7 @@ async function main() {
   for (const p of PUZZLES) {
     await db.puzzle.upsert({ where: { id: p.id }, update: {}, create: p });
   }
+  console.log(`[seed] ${PUZZLES.length} Aufgaben bereit.`);
 
   for (let i = 0; i < modules.length; i++) {
     const m = modules[i];
@@ -62,13 +79,14 @@ async function main() {
       });
     }
   }
+  console.log('[seed] Lernpfad Startklar mit 4 Modulen bereit.');
 
   const aliases = ['Springer-01', 'Turm-Leo', 'Bauer-Mia'];
   console.log('\n=== Test-Schüler (Codes werden nur hier einmalig angezeigt) ===');
   for (const alias of aliases) {
     const existing = await db.user.findUnique({ where: { alias } });
     if (existing) {
-      console.log(`- ${alias}: bereits vorhanden (Code unverändert)`);
+      console.log(`- ${alias}: bereits vorhanden (Code unverändert, nicht mehr abrufbar)`);
       continue;
     }
     const code = crypto.randomBytes(5).toString('hex').toUpperCase();
@@ -81,7 +99,13 @@ async function main() {
     });
     console.log(`- ${alias}: ${code}`);
   }
-  console.log('===========================================================\n');
+  console.log('=============================================================\n');
+  console.log('[seed] Fertig.');
 }
 
-main().finally(() => db.$disconnect());
+main()
+  .catch((err) => {
+    console.error('[seed] FEHLER:', err);
+    process.exit(1);
+  })
+  .finally(() => db.$disconnect());

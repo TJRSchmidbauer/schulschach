@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import AddStudentForm from './AddStudentForm';
+import StudentCodeCell from './StudentCodeCell';
+import TrainerNav from '@/app/trainer/TrainerNav';
 
 export default async function TrainerDashboard() {
   const session = await getSession();
@@ -12,7 +14,7 @@ export default async function TrainerDashboard() {
     orderBy: { alias: 'asc' },
     include: {
       attempts: {
-        select: { puzzleId: true, result: true, hintsUsed: true, createdAt: true },
+        select: { puzzleId: true, result: true, source: true, createdAt: true },
         orderBy: { createdAt: 'desc' },
       },
     },
@@ -27,9 +29,11 @@ export default async function TrainerDashboard() {
         </form>
       </div>
 
+      <TrainerNav active="students" />
+
       <div className="card" style={{ marginBottom: '1.2rem' }}>
         <h2>Neuen Schüler anlegen</h2>
-        <p className="muted">Der Code wird nur einmalig angezeigt – drucke ihn auf eine Karte.</p>
+        <p className="muted">Der Code ist danach in der Tabelle jederzeit über „Anzeigen“ abrufbar.</p>
         <AddStudentForm />
       </div>
 
@@ -40,10 +44,12 @@ export default async function TrainerDashboard() {
             <thead>
               <tr>
                 <th>Alias</th>
-                <th>Gelöst selbstständig</th>
+                <th>Selbstständig</th>
                 <th>Mit Tipp</th>
-                <th>Lösung angesehen</th>
+                <th>Lösung gesehen</th>
+                <th>Selbst gewählt</th>
                 <th>Letzte Aktivität</th>
+                <th>Code</th>
               </tr>
             </thead>
             <tbody>
@@ -51,6 +57,7 @@ export default async function TrainerDashboard() {
                 const indep = s.attempts.filter((a) => a.result === 'SOLVED_INDEPENDENT').length;
                 const withHint = s.attempts.filter((a) => a.result === 'SOLVED_WITH_HINT').length;
                 const viewed = s.attempts.filter((a) => a.result === 'SOLUTION_VIEWED').length;
+                const self = s.attempts.filter((a) => a.source === 'SELF').length;
                 const last = s.attempts[0]?.createdAt;
                 return (
                   <tr key={s.id}>
@@ -58,7 +65,9 @@ export default async function TrainerDashboard() {
                     <td>{indep}</td>
                     <td>{withHint}</td>
                     <td>{viewed}</td>
-                    <td>{last ? new Date(last).toLocaleString('de-DE') : '—'}</td>
+                    <td>{self}</td>
+                    <td>{last ? new Date(last).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' }) : '—'}</td>
+                    <td><StudentCodeCell studentId={s.id} /></td>
                   </tr>
                 );
               })}

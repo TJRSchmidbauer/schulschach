@@ -19,17 +19,25 @@ enum AttemptResult {
   ABANDONED
 }
 
+enum AttemptSource {
+  MODULE
+  ASSIGNMENT
+  SELF
+}
+
 model User {
-  id          String    @id @default(cuid())
-  alias       String    @unique
-  role        Role      @default(STUDENT)
-  codeLookup  String    @unique
-  codeHash    String
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  lastLoginAt DateTime?
-  sessions    Session[]
-  attempts    Attempt[]
+  id                String             @id @default(cuid())
+  alias             String             @unique
+  role              Role               @default(STUDENT)
+  codeLookup        String             @unique
+  codeHash          String
+  codeEnc           String?
+  active            Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  lastLoginAt       DateTime?
+  sessions          Session[]
+  attempts          Attempt[]
+  assignmentTargets AssignmentTarget[]
 }
 
 model Session {
@@ -66,17 +74,18 @@ model Module {
 }
 
 model Puzzle {
-  id            String         @id
-  fen           String
-  solutionUci   String
-  rating        Int
-  themes        String[]
-  title         String
-  hint          String
-  explanation   String
-  published     Boolean        @default(true)
-  modulePuzzles ModulePuzzle[]
-  attempts      Attempt[]
+  id                String             @id
+  fen               String
+  solutionUci       String
+  rating            Int
+  themes            String[]
+  title             String
+  hint              String
+  explanation       String
+  published         Boolean            @default(true)
+  modulePuzzles     ModulePuzzle[]
+  assignmentPuzzles AssignmentPuzzle[]
+  attempts          Attempt[]
 }
 
 model ModulePuzzle {
@@ -89,10 +98,43 @@ model ModulePuzzle {
   @@id([moduleId, puzzleId])
 }
 
+model Assignment {
+  id        String             @id @default(cuid())
+  title     String
+  dueAt     DateTime?
+  targetAll Boolean            @default(false)
+  active    Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  puzzles   AssignmentPuzzle[]
+  targets   AssignmentTarget[]
+  attempts  Attempt[]
+}
+
+model AssignmentPuzzle {
+  assignmentId String
+  puzzleId     String
+  sortOrder    Int
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  puzzle       Puzzle     @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+
+  @@id([assignmentId, puzzleId])
+}
+
+model AssignmentTarget {
+  assignmentId String
+  userId       String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([assignmentId, userId])
+}
+
 model Attempt {
   id              String        @id @default(cuid())
   userId          String
   puzzleId        String
+  assignmentId    String?
+  source          AttemptSource @default(MODULE)
   result          AttemptResult
   hintsUsed       Int           @default(0)
   wrongAttempts   Int           @default(0)
@@ -100,6 +142,8 @@ model Attempt {
   createdAt       DateTime      @default(now())
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   puzzle          Puzzle        @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  assignment      Assignment?   @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
+  @@index([assignmentId])
 }

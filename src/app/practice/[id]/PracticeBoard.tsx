@@ -12,6 +12,7 @@ type Props = {
   fen: string;
   title: string;
   hint: string;
+  source?: 'SELF';
 };
 
 type SquareStyles = Record<string, React.CSSProperties>;
@@ -25,7 +26,7 @@ const GREEN_DOT: React.CSSProperties = {
   borderRadius: '50%',
 };
 
-export default function PracticeBoard({ puzzleId, fen, title, hint }: Props) {
+export default function PracticeBoard({ puzzleId, fen, title, hint, source }: Props) {
   const router = useRouter();
   const [position, setPosition] = useState(fen);
   const [boardPx, setBoardPx] = useState(520);
@@ -44,11 +45,11 @@ export default function PracticeBoard({ puzzleId, fen, title, hint }: Props) {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  async function validateMove(source: string, target: string): Promise<void> {
+  async function validateMove(sourceSq: string, targetSq: string): Promise<void> {
     const gameCopy = new Chess(position);
-    const piece = gameCopy.get(source as never) as { type: string } | null;
-    const promotion = piece?.type === 'p' && (target.endsWith('8') || target.endsWith('1')) ? 'q' : undefined;
-    const uci = source + target + (promotion ?? '');
+    const piece = gameCopy.get(sourceSq as never) as { type: string } | null;
+    const promotion = piece?.type === 'p' && (targetSq.endsWith('8') || targetSq.endsWith('1')) ? 'q' : undefined;
+    const uci = sourceSq + targetSq + (promotion ?? '');
     const res = await fetch(`/api/puzzles/${puzzleId}/move`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -56,7 +57,7 @@ export default function PracticeBoard({ puzzleId, fen, title, hint }: Props) {
     });
     const body = (await res.json()) as { correct: boolean };
     if (body.correct) {
-      gameCopy.move({ from: source, to: target, promotion: promotion as 'q' | undefined });
+      gameCopy.move({ from: sourceSq, to: targetSq, promotion: promotion as 'q' | undefined });
       setPosition(gameCopy.fen());
       setDone(true);
       setFeedback({ ok: true, text: 'Richtig! Gut gemacht.' });
@@ -68,6 +69,7 @@ export default function PracticeBoard({ puzzleId, fen, title, hint }: Props) {
         body: JSON.stringify({
           puzzleId,
           result,
+          source,
           hintsUsed,
           wrongAttempts: wrong,
           durationSeconds: Math.round((Date.now() - startTs) / 1000),
@@ -104,6 +106,7 @@ export default function PracticeBoard({ puzzleId, fen, title, hint }: Props) {
         body: JSON.stringify({
           puzzleId,
           result: 'SOLUTION_VIEWED',
+          source,
           hintsUsed: 3,
           wrongAttempts: wrong,
           durationSeconds: Math.round((Date.now() - startTs) / 1000),
@@ -117,7 +120,7 @@ export default function PracticeBoard({ puzzleId, fen, title, hint }: Props) {
       <div className="board-wrap">
         <Chessboard
           position={position}
-          onPieceDrop={(source, target) => { void validateMove(source, target); return true; }}
+          onPieceDrop={(from, to) => { void validateMove(from, to); return true; }}
           boardWidth={boardPx}
           arePiecesDraggable={!done}
           customSquareStyles={squareStyles}

@@ -10,6 +10,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as {
     puzzleId?: string;
     result?: string;
+    source?: string;
     hintsUsed?: number;
     wrongAttempts?: number;
     durationSeconds?: number;
@@ -20,10 +21,25 @@ export async function POST(req: Request) {
   const puzzle = await db.puzzle.findUnique({ where: { id: body.puzzleId } });
   if (!puzzle) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
+  const userId = session.userId;
+  const assignment = await db.assignment.findFirst({
+    where: {
+      active: true,
+      puzzles: { some: { puzzleId: body.puzzleId } },
+      OR: [{ targetAll: true }, { targets: { some: { userId } } }],
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true },
+  });
+
+  const source: 'ASSIGNMENT' | 'SELF' | 'MODULE' = assignment ? 'ASSIGNMENT' : body.source === 'SELF' ? 'SELF' : 'MODULE';
+
   await db.attempt.create({
     data: {
-      userId: session.userId,
+      userId,
       puzzleId: body.puzzleId,
+      assignmentId: assignment?.id,
+      source,
       result: body.result as never,
       hintsUsed: Math.min(3, body.hintsUsed ?? 0),
       wrongAttempts: body.wrongAttempts ?? 0,

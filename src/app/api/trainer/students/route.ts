@@ -1,7 +1,7 @@
-import crypto from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { codeLookupHash, getSession, scryptHash } from '@/lib/auth';
+import { encryptCode, generateStudentCode } from '@/lib/crypto';
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -11,12 +11,13 @@ export async function POST(req: Request) {
   const trimmed = alias.trim();
   const exists = await db.user.findUnique({ where: { alias: trimmed } });
   if (exists) return NextResponse.json({ error: 'Alias ist schon vergeben' }, { status: 409 });
-  const code = crypto.randomBytes(5).toString('hex').toUpperCase();
+  const code = generateStudentCode();
   await db.user.create({
     data: {
       alias: trimmed,
       codeLookup: codeLookupHash(code),
       codeHash: scryptHash(code),
+      codeEnc: encryptCode(code),
     },
   });
   return NextResponse.json({ alias: trimmed, code });

@@ -31,6 +31,20 @@ enum GameStatus {
   FINISHED
 }
 
+enum TournamentStatus {
+  DRAFT
+  ACTIVE
+  FINISHED
+}
+
+enum PairingResult {
+  WHITE_WIN
+  BLACK_WIN
+  DRAW
+  BYE
+  UNPLAYED
+}
+
 model User {
   id                String             @id @default(cuid())
   alias             String             @unique
@@ -184,6 +198,68 @@ model Game {
 
   @@index([status])
   @@index([finishedAt])
+  @@index([whiteId])
+  @@index([blackId])
+}
+
+model Tournament {
+  id        String           @id @default(cuid())
+  title     String
+  status    TournamentStatus @default(DRAFT)
+  rounds    Int
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  finishedAt DateTime?
+  players   TournamentPlayer[]
+  roundsList TournamentRound[]
+
+  @@index([status])
+  @@index([finishedAt])
+}
+
+model TournamentPlayer {
+  id           String      @id @default(cuid())
+  tournamentId String
+  alias        String
+  startRank    Int
+  active       Boolean     @default(true)
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  whitePairs   TournamentPairing[] @relation("TournamentWhite")
+  blackPairs   TournamentPairing[] @relation("TournamentBlack")
+
+  @@unique([tournamentId, alias])
+  @@unique([tournamentId, startRank])
+  @@index([tournamentId])
+}
+
+model TournamentRound {
+  id           String      @id @default(cuid())
+  tournamentId String
+  number       Int
+  published    Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  tournament   Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  pairings     TournamentPairing[]
+
+  @@unique([tournamentId, number])
+  @@index([tournamentId])
+}
+
+model TournamentPairing {
+  id          String       @id @default(cuid())
+  roundId     String
+  board       Int
+  whiteId     String
+  blackId     String?
+  result      PairingResult @default(UNPLAYED)
+  repeated    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  round       TournamentRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  white       TournamentPlayer @relation("TournamentWhite", fields: [whiteId], references: [id], onDelete: Cascade)
+  black       TournamentPlayer? @relation("TournamentBlack", fields: [blackId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, board])
+  @@index([roundId])
   @@index([whiteId])
   @@index([blackId])
 }

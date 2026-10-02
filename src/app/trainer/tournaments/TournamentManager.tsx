@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { RANKING_RULES, RESULT_LABEL, type TResult } from '@/lib/tournament/types';
 import { fmtPts, nameMap, type TView } from '@/lib/tournament/client';
+import DeleteTournament from './DeleteTournament';
 
 const smallBtn: React.CSSProperties = {
   padding: '0.35rem 0.8rem',
@@ -56,15 +57,22 @@ export default function TournamentManager({ id }: { id: string }) {
 
   const names = nameMap(t);
   const nm = (pid: string | null) => (pid ? names.get(pid) ?? '?' : '–');
+  const inactive = new Set(t.players.filter((p) => !p.active).map((p) => p.id));
+  const tag = (pid: string | null) => (pid && inactive.has(pid) ? <span className='muted'> (abgemeldet)</span> : null);
   const last = t.roundsList[t.roundsList.length - 1];
   const open = !!last && last.pairings.some((p) => p.result === 'UNPLAYED');
   const shown = t.roundsList.find((r) => r.number === (roundNo ?? last?.number)) ?? last;
   const finished = t.status === 'FINISHED';
   const canDraw = !finished && t.roundsList.length < t.rounds && !open;
   const canFinish = !finished && t.roundsList.length > 0 && !open;
+  const withdrawnInOpenRound =
+    open && !!last && last.pairings.some((p) => p.result === 'UNPLAYED' && (inactive.has(p.whiteId) || (p.blackId !== null && inactive.has(p.blackId))));
 
   const setResult = (pairingId: string, result: TResult) =>
     call(`/api/trainer/tournaments/${id}`, { action: 'result', pairingId, result });
+
+  const setActive = (playerId: string, active: boolean) =>
+    call(`/api/trainer/tournaments/${id}`, { action: active ? 'reactivate' : 'withdraw', playerId });
 
   return (
     <div>
@@ -73,7 +81,7 @@ export default function TournamentManager({ id }: { id: string }) {
         <p className='muted'>
           {t.players.length} Teilnehmer · Runde {t.roundsList.length} von {t.rounds} · {STATUS_LABEL[t.status]}
         </p>
-        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             className='btn'
             style={{ width: 'auto', marginTop: 0, padding: '0.6rem 1.2rem' }}
@@ -109,8 +117,12 @@ export default function TournamentManager({ id }: { id: string }) {
               Turnier abschließen
             </button>
           )}
+          <DeleteTournament id={id} title={t.title} goTo='/trainer/tournaments' />
         </div>
         {open && <p className='muted'>Zuerst alle Ergebnisse der aktuellen Runde eintragen, dann kann die nächste Runde ausgelost werden.</p>}
+        {withdrawnInOpenRound && (
+          <p className='muted'>Ein abgemeldeter Spieler hat in der aktuellen Runde noch eine offene Partie. Bitte trage dafür ein Ergebnis ein, zum Beispiel einen Sieg für den Gegner.</p>
+        )}
         {msg && <p className='error'>{msg}</p>}
       </div>
 
@@ -135,8 +147,8 @@ export default function TournamentManager({ id }: { id: string }) {
                 {shown.pairings.map((p) => (
                   <tr key={p.id}>
                     <td>{p.board}</td>
-                    <td><b>{nm(p.whiteId)}</b></td>
-                    <td>{p.blackId ? <b>{nm(p.blackId)}</b> : <span className='muted'>Freilos</span>}{p.repeated ? ' ⚠' : ''}</td>
+                    <td><b>{nm(p.whiteId)}</b>{tag(p.whiteId)}</td>
+                    <td>{p.blackId ? <b>{nm(p.blackId)}</b> : <span className='muted'>Freilos</span>}{tag(p.blackId)}{p.repeated ? ' ⚠' : ''}</td>
                     <td>
                       {p.blackId ? (
                         <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -166,7 +178,7 @@ export default function TournamentManager({ id }: { id: string }) {
         </div>
       )}
 
-      <div className='card'>
+      <div className='card' style={{ marginBottom: '1.2rem' }}>
         <h2>Rangliste</h2>
         <div style={{ overflowX: 'auto' }}>
           <table className='results'>
@@ -177,7 +189,7 @@ export default function TournamentManager({ id }: { id: string }) {
               {t.standings.map((s, i) => (
                 <tr key={s.id}>
                   <td>{i + 1}</td>
-                  <td><b>{s.alias}</b></td>
+                  <td><b>{s.alias}</b>{!s.active && <span className='muted'> (abgemeldet)</span>}</td>
                   <td>{fmtPts(s.points)}</td>
                   <td>{fmtPts(s.buchholz)}</td>
                   <td>{fmtPts(s.feinbuchholz)}</td>
@@ -189,6 +201,46 @@ export default function TournamentManager({ id }: { id: string }) {
           </table>
         </div>
         <p className='muted' style={{ marginBottom: 0 }}>Reihenfolge der Kriterien: {RANKING_RULES.join(', ')}.</p>
+      </div>
+
+      <div className='card'>
+        <h2>Teilnehmer</h2>
+        <p className='muted'>
+          Wer sich abmeldet, bleibt mit den bisherigen Ergebnissen in der Rangliste und wird ab der nächsten Auslosung nicht mehr berücksichtigt. Du kannst die Abmeldung wieder rückgängig machen.
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table className='results'>
+            <thead>
+              <tr><th>Start-Nr.</th><th>Alias</th><th>Status</th>{!finished && <th>Aktion</th>}</tr>
+            </thead>
+            <tbody>
+              {t.players.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.startRank}</td>
+                  <td><b>{p.alias}</b></td>
+                  <td>{p.active ? 'dabei' : 'abgemeldet'}</td>
+                  {!finished && (
+                    <td>
+                      <button
+                        disabled={busy}
+                        style={smallBtn}
+                        onClick={() => {
+                          if (!p.active) {
+                            void setActive(p.id, true);
+                          } else if (window.confirm(`„${p.alias}“ ab der nächsten Runde abmelden?`)) {
+                            void setActive(p.id, false);
+                          }
+                        }}
+                      >
+                        {p.active ? 'Abmelden' : 'Wieder anmelden'}
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

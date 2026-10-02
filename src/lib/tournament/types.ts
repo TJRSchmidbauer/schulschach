@@ -17,6 +17,7 @@ export type Standing = {
   id: string;
   alias: string;
   startRank: number;
+  active: boolean;
   points: number;
   buchholz: number;
   feinbuchholz: number;

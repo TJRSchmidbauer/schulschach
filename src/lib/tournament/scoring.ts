@@ -18,9 +18,9 @@ export function completed(pairs: PairingInput[]): PairingInput[] {
 
 // FIDE-nahe Schulturnier-Wertung: ungespielte Partien zählen nicht;
 // Buchholz/Feinbuchholz streichen die niedrigste gegnerische Punktzahl einmal.
+// Abgemeldete Spieler bleiben mit ihren bisherigen Ergebnissen in der Rangliste (Feld active).
 export function standings(players: PlayerInputFull[], pairs: PairingInput[]): Standing[] {
   const done = completed(pairs);
-  const byId = new Map(players.map((p) => [p.id, p]));
   const data = new Map<string, Standing>();
   const opponents = new Map<string, string[]>();
   const outcomes = new Map<string, { opponent: string; score: number }[]>();
@@ -31,6 +31,7 @@ export function standings(players: PlayerInputFull[], pairs: PairingInput[]): St
       id: p.id,
       alias: p.alias,
       startRank: p.startRank,
+      active: p.active,
       points: 0,
       buchholz: 0,
       feinbuchholz: 0,
@@ -90,16 +91,15 @@ export function standings(players: PlayerInputFull[], pairs: PairingInput[]): St
     if (cs.length >= 2 && cs[cs.length - 1] === cs[cs.length - 2]) s.consecutiveColor = cs[cs.length - 1];
   }
 
-  return Array.from(data.values())
-    .filter((s) => byId.get(s.id)?.active)
-    .sort((a, b) =>
+  return Array.from(data.values()).sort(
+    (a, b) =>
       b.points - a.points ||
       b.buchholz - a.buchholz ||
       b.feinbuchholz - a.feinbuchholz ||
       b.sonnebornBerger - a.sonnebornBerger ||
       b.wins - a.wins ||
       a.startRank - b.startRank,
-    );
+  );
 }
 
 export function pointOf(result: TResult, side: 'w' | 'b'): number {

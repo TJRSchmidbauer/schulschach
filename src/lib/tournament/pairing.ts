@@ -7,16 +7,28 @@ import type { PairingInput, PlayerInputFull, ProposedPairing, Standing } from '.
 // ein Ergebnis der gleichen Form. Ergebnisse sind Zahlen aus Sicht von Weiß (1, 0.5, 0),
 // Freilose sind eigene Einträge mit einer Art (kind). Das Ergebnis wird geprüft; weicht etwas
 // ab, greift der Rückfall weiter unten und die Form kommt ins Log.
+//
+// Abgemeldete Spieler werden der Bibliothek nicht übergeben. Eine Partie zwischen einem aktiven
+// und einem abgemeldeten Spieler erscheint für den aktiven Spieler als Freilos mit den Punkten,
+// die er in dieser Partie bekommen hat (1 = full, 0.5 = half, 0 = zero). So stimmen die
+// Punktgruppen weiter, ohne dass die Bibliothek einen unbekannten Spieler sieht.
 type LibGame = {
   white: string;
   black: string;
   result: 0 | 0.5 | 1;
 };
-type LibBye = { player: string; kind: 'pairing' };
+type LibBye = { player: string; kind: 'pairing' | 'full' | 'half' | 'zero' };
 type LibRound = { games: LibGame[]; byes: LibBye[] };
 const pair = rawPair as unknown as (players: { id: string; rating: number }[], rounds: LibRound[]) => unknown;
 
-function toRounds(historyPairs: PairingInput[]): LibRound[] {
+function scoreFor(result: PairingInput['result'], side: 'w' | 'b'): number {
+  if (result === 'DRAW') return 0.5;
+  if (result === 'WHITE_WIN') return side === 'w' ? 1 : 0;
+  if (result === 'BLACK_WIN') return side === 'b' ? 1 : 0;
+  return 0;
+}
+
+function toRounds(historyPairs: PairingInput[], active: Set<string>): LibRound[] {
   const rounds = historyPairs.reduce((max, p) => Math.max(max, p.round), 0);
   const out: LibRound[] = [];
   for (let r = 1; r <= rounds; r++) {
@@ -25,12 +37,22 @@ function toRounds(historyPairs: PairingInput[]): LibRound[] {
     for (const p of historyPairs) {
       if (p.round !== r) continue;
       if (p.blackId === null) {
-        byes.push({ player: p.whiteId, kind: 'pairing' });
+        if (active.has(p.whiteId)) byes.push({ player: p.whiteId, kind: 'pairing' });
         continue;
       }
-      if (p.result === 'WHITE_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 1 });
-      else if (p.result === 'BLACK_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 0 });
-      else if (p.result === 'DRAW') games.push({ white: p.whiteId, black: p.blackId, result: 0.5 });
+      if (p.result === 'UNPLAYED' || p.result === 'BYE') continue;
+      const whiteActive = active.has(p.whiteId);
+      const blackActive = active.has(p.blackId);
+      if (!whiteActive && !blackActive) continue;
+      if (whiteActive && blackActive) {
+        if (p.result === 'WHITE_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 1 });
+        else if (p.result === 'BLACK_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 0 });
+        else if (p.result === 'DRAW') games.push({ white: p.whiteId, black: p.blackId, result: 0.5 });
+        continue;
+      }
+      const player = whiteActive ? p.whiteId : p.blackId;
+      const score = scoreFor(p.result, whiteActive ? 'w' : 'b');
+      byes.push({ player, kind: score === 1 ? 'full' : score === 0.5 ? 'half' : 'zero' });
     }
     out.push({ games, byes });
   }
@@ -55,8 +77,10 @@ function describe(x: unknown): string {
 }
 
 function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): ProposedPairing[] {
-  const libPlayers = players.map((p) => ({ id: p.id, rating: 100000 - p.startRank }));
-  const raw = pair(libPlayers, toRounds(historyPairs));
+  const activePlayers = players.filter((p) => p.active);
+  const activeIds = new Set(activePlayers.map((p) => p.id));
+  const libPlayers = activePlayers.map((p) => ({ id: p.id, rating: 100000 - p.startRank }));
+  const raw = pair(libPlayers, toRounds(historyPairs, activeIds));
   if (raw && typeof (raw as { then?: unknown }).then === 'function') {
     throw new Error('Die Bibliothek liefert ein Promise statt eines Ergebnisses.');
   }
@@ -67,12 +91,11 @@ function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): Pr
     throw new Error('Unerwartete Ergebnisform: ' + describe(raw));
   }
 
-  const known = new Set(players.map((p) => p.id));
   const history = playedSet(historyPairs);
   const hadBye = new Set(historyPairs.filter((p) => p.blackId === null).map((p) => p.whiteId));
   const out: ProposedPairing[] = [];
   for (const g of games) {
-    if (!g || !known.has(g.white) || !known.has(g.black)) {
+    if (!g || !activeIds.has(g.white) || !activeIds.has(g.black)) {
       throw new Error('Unbekannter Spieler in der Auslosung: ' + describe(g));
     }
     if (seen(g.white, g.black, history)) throw new Error('Wiederholungspaarung in der Auslosung.');
@@ -80,7 +103,7 @@ function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): Pr
   }
   for (const b of byes) {
     const id = typeof b === 'string' ? b : (b.player ?? b.id ?? '');
-    if (!known.has(id)) throw new Error('Unbekannter Spieler beim Freilos: ' + describe(b));
+    if (!activeIds.has(id)) throw new Error('Unbekannter Spieler beim Freilos: ' + describe(b));
     if (hadBye.has(id)) throw new Error('Zweites Freilos für dieselbe Person: ' + id);
     out.push({ whiteId: id, blackId: null, repeated: false, note: 'Freilos' });
   }
@@ -90,7 +113,7 @@ function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): Pr
     used.add(p.whiteId);
     if (p.blackId) used.add(p.blackId);
   }
-  if (used.size !== players.length) {
+  if (used.size !== activePlayers.length) {
     throw new Error('Die Auslosung ist unvollständig: ' + describe(raw));
   }
   return out.sort((a, b) => Number(a.blackId === null) - Number(b.blackId === null));
@@ -158,7 +181,7 @@ function chooseOpponent(a: Standing, candidates: Standing[], history: Set<string
 
 function fallbackPairings(players: PlayerInputFull[], historyPairs: PairingInput[], round: number): ProposedPairing[] {
   const table = standings(players, historyPairs);
-  const active = table.filter((x) => players.find((p) => p.id === x.id)?.active);
+  const active = table.filter((x) => x.active);
   const history = playedSet(historyPairs);
   const seed = round * 997 + players.length * 31;
   const byes = new Set(historyPairs.filter((p) => p.result === 'BYE').map((p) => p.whiteId));

@@ -92,9 +92,9 @@ export default function Beamer({ id }: { id: string }) {
             </thead>
             <tbody>
               {t.standings.map((s, i) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid #ddd3c3' }}>
+                <tr key={s.id} style={{ borderBottom: '1px solid #ddd3c3', opacity: s.active ? 1 : 0.6 }}>
                   <td>{i + 1}</td>
-                  <td><b>{s.alias}</b></td>
+                  <td><b>{s.alias}</b>{!s.active && <span style={{ color: '#7b7060', fontSize: '0.7em' }}> abgemeldet</span>}</td>
                   <td>{fmtPts(s.points)}</td>
                   <td>{fmtPts(s.buchholz)}</td>
                   <td>{fmtPts(s.feinbuchholz)}</td>

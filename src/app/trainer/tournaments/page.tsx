@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import { housekeeping } from '@/lib/tournament/service';
 import TrainerNav from '@/app/trainer/TrainerNav';
 import NewTournament from './NewTournament';
+import DeleteTournament from './DeleteTournament';
 
 const STATUS_LABEL = { DRAFT: 'Entwurf', ACTIVE: 'läuft', FINISHED: 'beendet' } as const;
 
@@ -43,14 +44,15 @@ export default async function TournamentsPage() {
               <span>
                 <b>{t.title}</b> · {t.players.length} Teilnehmer · Runde {t.roundsList.length}/{t.rounds} · {STATUS_LABEL[t.status]}
               </span>
-              <span style={{ display: 'flex', gap: '1rem' }}>
+              <span style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 <Link href={`/trainer/tournaments/${t.id}`}>Öffnen</Link>
                 <Link href={`/trainer/tournaments/${t.id}/beamer`} target='_blank'>Beamer</Link>
+                <DeleteTournament id={t.id} title={t.title} />
               </span>
             </li>
           ))}
         </ul>
-        <p className='muted' style={{ marginBottom: 0 }}>Beendete Turniere werden nach 90 Tagen automatisch gelöscht.</p>
+        <p className='muted' style={{ marginBottom: 0 }}>Beendete Turniere werden nach 90 Tagen automatisch gelöscht. Mit „Löschen“ kannst du jedes Turnier sofort entfernen.</p>
       </div>
 
       <NewTournament students={students.map((s) => s.alias)} />

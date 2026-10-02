@@ -117,6 +117,9 @@ export async function generateRound(id: string) {
   }
   const next = t.roundsList.length + 1;
   if (next > t.rounds) return fail('Alle vorgesehenen Runden sind schon ausgelost.', 409);
+  if (t.players.filter((p) => p.active).length < 2) {
+    return fail('Für eine Auslosung werden mindestens 2 aktive Teilnehmer gebraucht.', 409);
+  }
 
   const { players, pairs } = inputs(t);
   const proposed = swissPairings(players, pairs, next);
@@ -168,5 +171,27 @@ export async function finishTournament(id: string) {
     return fail('Es gibt noch offene Ergebnisse.', 409);
   }
   await db.tournament.update({ where: { id }, data: { status: 'FINISHED', finishedAt: new Date() } });
+  return true;
+}
+
+// Abmelden gilt nur für künftige Runden: bisherige Partien und Punkte bleiben erhalten.
+export async function setPlayerActive(tournamentId: string, playerId: string, active: boolean) {
+  const t = await getTournament(tournamentId);
+  if (!t) return fail('Turnier nicht gefunden.', 404);
+  if (t.status === 'FINISHED') return fail('Dieses Turnier ist beendet.', 409);
+  const player = t.players.find((p) => p.id === playerId);
+  if (!player) return fail('Teilnehmer nicht gefunden.', 404);
+  if (player.active === active) return true;
+  if (!active && t.players.filter((p) => p.active).length <= 2) {
+    return fail('Es müssen mindestens 2 aktive Teilnehmer im Turnier bleiben.', 409);
+  }
+  await db.tournamentPlayer.update({ where: { id: playerId }, data: { active } });
+  return true;
+}
+
+export async function deleteTournament(id: string) {
+  const t = await db.tournament.findUnique({ where: { id }, select: { id: true } });
+  if (!t) return fail('Turnier nicht gefunden.', 404);
+  await db.tournament.delete({ where: { id } });
   return true;
 }

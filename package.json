@@ -13,6 +13,7 @@
     "hash:trainer": "node scripts/trainer-hash.mjs"
   },
   "dependencies": {
+    "@echecs/swiss": "^5.0.0",
     "@prisma/client": "^6.6.0",
     "chess.js": "^1.2.0",
     "next": "^15.2.0",

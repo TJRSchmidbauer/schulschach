@@ -1,6 +1,44 @@
+import { pair } from '@echecs/swiss/dutch';
+import type { Game, Player } from '@echecs/swiss';
 import { standings } from './scoring';
 import type { PairingInput, PlayerInputFull, ProposedPairing, Standing } from './types';
 
+// Hauptverfahren: FIDE-Holländisches System (C.04.3) über die Bibliothek @echecs/swiss (MIT).
+// Rangfolge der Startnummern: Startrangliste, über eine künstliche Zahl als Rating abgebildet.
+function toGames(historyPairs: PairingInput[]): Game[][] {
+  const rounds = historyPairs.reduce((max, p) => Math.max(max, p.round), 0);
+  const games: Game[][] = [];
+  for (let r = 1; r <= rounds; r++) {
+    const list: Game[] = [];
+    for (const p of historyPairs) {
+      if (p.round !== r) continue;
+      if (p.blackId === null) {
+        list.push({ white: p.whiteId, black: '', result: 1, kind: 'pairing-bye' });
+        continue;
+      }
+      if (p.result === 'WHITE_WIN') list.push({ white: p.whiteId, black: p.blackId, result: 1 });
+      else if (p.result === 'BLACK_WIN') list.push({ white: p.whiteId, black: p.blackId, result: 0 });
+      else if (p.result === 'DRAW') list.push({ white: p.whiteId, black: p.blackId, result: 0.5 });
+    }
+    games.push(list);
+  }
+  return games;
+}
+
+function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): ProposedPairing[] {
+  const libPlayers: Player[] = players.map((p) => ({ id: p.id, rating: 100000 - p.startRank }));
+  const result = pair(libPlayers, toGames(historyPairs));
+  const out: ProposedPairing[] = result.pairings.map((p) => ({ whiteId: p.white, blackId: p.black, repeated: false }));
+  for (const b of result.byes) out.push({ whiteId: b.player, blackId: null, repeated: false, note: 'Freilos' });
+  const covered = result.pairings.length * 2 + result.byes.length;
+  if (covered !== players.length) throw new Error('Die Auslosung ist unvollständig.');
+  return out;
+}
+
+// ---------------------------------------------------------------------------------------
+// Rückfall: eigene, einfache Schulturnier-Paarung (gleiche Punktgruppe, Wiederholungen
+// vermeiden, Farben ausgleichen). Wird nur benutzt, falls das Hauptverfahren fehlschlägt.
+// ---------------------------------------------------------------------------------------
 function hash(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
@@ -23,7 +61,6 @@ function colorCost(a: Standing, b: Standing, white: string): number {
   const w = white === a.id ? a : b;
   const black = white === a.id ? b : a;
   let cost = 0;
-  // Farben möglichst ausgleichen; gleiche Farbe zum dritten Mal stark vermeiden.
   cost += Math.max(0, w.colorBalance) * 30;
   cost += Math.max(0, -black.colorBalance) * 30;
   if (w.consecutiveColor === 'w') cost += 300;
@@ -58,9 +95,7 @@ function chooseOpponent(a: Standing, candidates: Standing[], history: Set<string
   return best;
 }
 
-// Transparente Schulturnier-Paarung: gleiche Punktgruppe bevorzugt, keine Wiederholung,
-// Farben ausgleichen. Bei kleinen schwierigen Feldern sucht sie stufenweise im Restfeld.
-export function swissPairings(players: PlayerInputFull[], historyPairs: PairingInput[], round: number): ProposedPairing[] {
+function fallbackPairings(players: PlayerInputFull[], historyPairs: PairingInput[], round: number): ProposedPairing[] {
   const table = standings(players, historyPairs);
   const active = table.filter((x) => players.find((p) => p.id === x.id)?.active);
   const history = playedSet(historyPairs);
@@ -80,8 +115,6 @@ export function swissPairings(players: PlayerInputFull[], historyPairs: PairingI
 
   while (work.length > 0) {
     const a = work.shift()!;
-    // Zuerst gleiche Punktgruppe ohne Wiederholung, dann jede andere Punktgruppe ohne Wiederholung,
-    // erst als letzte Möglichkeit eine Wiederholung.
     const same = work.filter((b) => b.points === a.points && !seen(a.id, b.id, history));
     const anyFresh = work.filter((b) => !seen(a.id, b.id, history));
     const pool = same.length ? same : anyFresh.length ? anyFresh : work;
@@ -98,6 +131,14 @@ export function swissPairings(players: PlayerInputFull[], historyPairs: PairingI
     });
   }
 
-  // Freilos erscheint bei der Auslosung unten; die Bretter erhalten danach fortlaufende Nummern.
   return out.sort((a, b) => Number(a.blackId === null) - Number(b.blackId === null));
+}
+
+export function swissPairings(players: PlayerInputFull[], historyPairs: PairingInput[], round: number): ProposedPairing[] {
+  try {
+    return fideDutch(players, historyPairs);
+  } catch (err) {
+    console.warn('[turnier] FIDE-Auslosung fehlgeschlagen, Notlösung wird benutzt:', err instanceof Error ? err.message : err);
+    return fallbackPairings(players, historyPairs, round);
+  }
 }

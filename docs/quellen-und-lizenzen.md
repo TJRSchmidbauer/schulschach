@@ -20,7 +20,8 @@ Stand: Oktober 2026. Dieses Dokument erklärt, woher Inhalte stammen und warum s
 
 ## Turnier-Auslosung
 
-- Die Schweizer-System-Auslosung und die Wertungen (Buchholz, Feinbuchholz, Sonneborn-Berger) sind eine **eigene Implementierung** (`src/lib/tournament`). Es wird keine Fremdbibliothek und kein fremder Quelltext eingebunden.
+- Die Auslosung nach dem FIDE-Holländischen System (C.04.3) berechnet die Bibliothek **`@echecs/swiss`** (Lizenz **MIT**), <https://github.com/echecsjs/swiss>. Sie wird als normale npm-Abhängigkeit eingebunden, ihr Quelltext ist nicht kopiert.
+- Die Wertungen (Buchholz, Feinbuchholz, Sonneborn-Berger) und eine einfache Notlösung für die Auslosung sind eigener Code (`src/lib/tournament`).
 - Als fachliche Orientierung dienten die allgemein bekannten Regeln aus Jugendspielordnungen und Feinwertungs-Beschreibungen. Regeln und Rechenverfahren sind nicht urheberrechtlich geschützt; Texte aus diesen Ordnungen wurden nicht übernommen.
 
 ## Lernpfade
@@ -41,6 +42,7 @@ Bei der Recherche wurden bekannte Lehrmethoden und Materialien gesichtet. Als di
 | Stappenmethode (Brunia / van Wijgerden), Hefte und Handbücher | Kommerzielle, urheberrechtlich geschützte Lehrwerke |
 | Leitfäden und Kurspläne einzelner Schulen oder Anbieter (zum Beispiel Lehrplan-PDFs, Kursleitfäden) | Keine offene Lizenz erkennbar |
 | Wikibooks / Wikipedia (CC BY-SA) | Wäre mit Namensnennung und Weitergabe unter gleichen Bedingungen möglich, wird aber nicht verwendet, damit der eigene Text unter MIT bleiben kann |
+| bbpPairings (Auslosungs-Engine) | Die Lizenz wird in Quellen uneinheitlich angegeben (Apache 2.0 beziehungsweise GPL); nicht eingebunden |
 
 Wer eigene Materialien ergänzt, prüft bitte selbst deren Lizenz und nennt die Quelle.
 
@@ -57,6 +59,7 @@ Wer eigene Materialien ergänzt, prüft bitte selbst deren Lizenz und nennt die 
 | react-chessboard | Schachbrett-Darstellung | MIT |
 | Prisma | Datenbankzugriff | Apache-2.0 |
 | tsx | Skripte ausführen | MIT |
+| @echecs/swiss | Turnier-Auslosung (FIDE-Holländisch) | MIT |
 | Stockfish.js | Analyse-Engine im Browser | GPL-3.0 |
 | PostgreSQL | Datenbank | PostgreSQL License |
 | zstd | Entpacken der Lichess-Datei | BSD-3-Clause (alternativ GPL-2.0) |

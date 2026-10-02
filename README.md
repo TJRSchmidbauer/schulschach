@@ -38,7 +38,7 @@ Datensparsame, selbst gehostete Schach-Lernplattform für eine Schul-AG: Aufgabe
 - Übungsdatenbank mit Filtern (Thema, Rating, Suche) und Brettvorschau
 - Hausaufgaben für alle oder ausgewählte Schüler, mit Fälligkeitsdatum
 - Live-Partien ansetzen (auch mit eigener Startstellung), live zusehen mit Engine-Analyse, Partien beenden
-- Turniere im Schweizer System für echte Brettpartien (bis 100 Teilnehmer): Auslosung, Ergebnisse, Rangliste mit Buchholz-Wertungen, große Beamer-Ansicht
+- Turniere im Schweizer System für echte Brettpartien (bis 100 Teilnehmer): Auslosung nach FIDE-Holländisch (C.04.3), Ergebnisse, Rangliste mit Buchholz-Wertungen, große Beamer-Ansicht
 - Statistik je Schüler und Thema inklusive Schwachstellen
 - Urkunden als SVG: Der echte Name wird nur im Browser eingetragen und nie an den Server gesendet
 
@@ -164,7 +164,7 @@ docs/                   Import-Anleitung, Live-Schach, Turniere, Quellen und Liz
 
 - Aufgaben: Lichess Open Database, **CC0 1.0**, <https://database.lichess.org>
 - Analyse-Engine: Stockfish.js, **GPL-3.0**, als getrennte Datei im Browser; Lizenztext und Quellverweis werden mitgeliefert
-- Turnier-Auslosung: eigene Implementierung ohne Fremdbibliothek
+- Turnier-Auslosung: Bibliothek `@echecs/swiss` (**MIT**), Wertungen und Notlösung als eigener Code
 - Lernpfade: eigene Zusammenstellung, eigene Texte; keine Inhalte geschützter Lehrwerke
 - Code und eigene Texte: **MIT**, siehe [LICENSE](LICENSE)
 - Drittsoftware und Details: [docs/quellen-und-lizenzen.md](docs/quellen-und-lizenzen.md)

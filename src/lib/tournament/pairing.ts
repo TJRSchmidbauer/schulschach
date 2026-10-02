@@ -4,14 +4,15 @@ import type { PairingInput, PlayerInputFull, ProposedPairing, Standing } from '.
 
 // Hauptverfahren: FIDE-Holländisches System (C.04.3) über die Bibliothek @echecs/swiss (MIT).
 // Die Bibliothek (Version 5) arbeitet mit Runden-Objekten { games, byes } und liefert
-// ein Ergebnis der gleichen Form. Sie wird locker typisiert angesprochen, ihr Ergebnis wird
-// geprüft. Weicht etwas ab, greift der Rückfall weiter unten und die Form kommt ins Log.
+// ein Ergebnis der gleichen Form. Ergebnisse sind Zahlen aus Sicht von Weiß (1, 0.5, 0),
+// Freilose sind eigene Einträge mit einer Art (kind). Das Ergebnis wird geprüft; weicht etwas
+// ab, greift der Rückfall weiter unten und die Form kommt ins Log.
 type LibGame = {
   white: string;
   black: string;
-  result: 'white' | 'black' | 'draw' | 'none';
+  result: 0 | 0.5 | 1;
 };
-type LibBye = { player: string };
+type LibBye = { player: string; kind: 'pairing' };
 type LibRound = { games: LibGame[]; byes: LibBye[] };
 const pair = rawPair as unknown as (players: { id: string; rating: number }[], rounds: LibRound[]) => unknown;
 
@@ -24,12 +25,12 @@ function toRounds(historyPairs: PairingInput[]): LibRound[] {
     for (const p of historyPairs) {
       if (p.round !== r) continue;
       if (p.blackId === null) {
-        byes.push({ player: p.whiteId });
+        byes.push({ player: p.whiteId, kind: 'pairing' });
         continue;
       }
-      if (p.result === 'WHITE_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 'white' });
-      else if (p.result === 'BLACK_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 'black' });
-      else if (p.result === 'DRAW') games.push({ white: p.whiteId, black: p.blackId, result: 'draw' });
+      if (p.result === 'WHITE_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 1 });
+      else if (p.result === 'BLACK_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 0 });
+      else if (p.result === 'DRAW') games.push({ white: p.whiteId, black: p.blackId, result: 0.5 });
     }
     out.push({ games, byes });
   }

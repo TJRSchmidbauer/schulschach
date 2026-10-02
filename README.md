@@ -42,6 +42,8 @@
 - 🏆 Turniere im Schweizer System für echte Brettpartien (bis 100 Teilnehmer): Auslosung nach FIDE-Holländisch (C.04.3), Ergebnisse, Rangliste mit Buchholz-Wertungen, große Beamer-Ansicht 📽️, Abmelden einzelner Spieler für künftige Runden und Löschen von Turnieren
 - 📊 Statistik je Schüler und Thema inklusive Schwachstellen
 - 📜 Urkunden als SVG: Der echte Name wird nur im Browser eingetragen und nie an den Server gesendet
+- ⚙️ Einstellungsseite (Zahnrad, nur für Trainer): Name und Untertitel, Farbschemata, Brettfarben, Begrüßungstext, Funktionsschalter, Medaillen-Schwierigkeit, Urkunden-Vorlage, erlaubte Bedenkzeiten für Live-Partien, Aufbewahrungsfristen sowie Impressum und Datenschutz als Markdown
+- 🗂️ Gruppen mit eigenem Lernpfad, CSV-Import für Schüler und Turnier-Teilnehmer, Alias-Generator für Spitznamen
 
 ## 🚀 Schnellstart mit Portainer
 
@@ -79,11 +81,13 @@ Die ausgegebene Zeile `TRAINER_CODE_HASH=scrypt:...` trägst du als Stack-Variab
 
 ⚠️ **Wichtig:** Ändere `AUTH_SECRET` nach dem Start nicht mehr. Die Schüler-Anmeldung und die Entschlüsselung der Codes hängen daran. Bei einer Änderung sind alle Schülercodes ungültig und müssen über „Neu ausstellen“ im Trainer-Bereich neu erzeugt werden. Bewahre die Werte sicher auf (zum Beispiel im Passwortmanager).
 
+Alles Weitere, was das Aussehen und Verhalten der Seite betrifft, stellst du direkt in der App ein (Zahnrad im Trainer-Bereich). Siehe [docs/einstellungen.md](docs/einstellungen.md).
+
 ## 🛠️ Betrieb
 
 ### 👥 Schüler anlegen
 
-Trainer-Bereich → Schüler → Alias eingeben. Nimm Aliasse statt Klarnamen (zum Beispiel „Bauer-Mia“). Der Code lässt sich in der Tabelle jederzeit anzeigen oder neu ausstellen.
+Trainer-Bereich → Schüler → Alias eingeben. Nimm Aliasse statt Klarnamen (zum Beispiel „Bauer-Mia“). Der Code lässt sich in der Tabelle jederzeit anzeigen oder neu ausstellen. Viele Schüler auf einmal legst du über den CSV-Import an (⚙️ → Einstellungen → CSV-Import), wahlweise mit erzeugten Spitznamen.
 
 ### 🧩 Aufgaben importieren und Lernpfade bauen
 
@@ -110,6 +114,10 @@ Schüler öffnen auf der Startseite die Spiel-Lobby und fordern sich heraus. Der
 ### 🏆 Turniere
 
 Trainer-Bereich → Turniere: Teilnehmer wählen, Gast-Aliasse eintragen, Runden auslosen, Ergebnisse eintragen, Spieler für künftige Runden abmelden, Rangliste ansehen, die große Beamer-Ansicht öffnen und Turniere (auch Probeturniere) mit „Löschen“ entfernen. Regeln, Rangfolge und Grenzen: [docs/turniere.md](docs/turniere.md).
+
+### ⚙️ Einstellungen und Gruppen
+
+Über das Zahnrad oben rechts (nur für angemeldete Trainer) erreichst du die Einstellungen: Name, Farbschema, Brettfarben, Begrüßungstext, Funktionen ein- und ausschalten, Medaillen-Schwierigkeit, Urkunden-Vorlage, erlaubte Bedenkzeiten, Aufbewahrungsfristen sowie Impressum und Datenschutz. Details: [docs/einstellungen.md](docs/einstellungen.md). Mit Gruppen teilst du die AG ein und legst fest, welche Lernpfade jede Gruppe sieht: [docs/gruppen.md](docs/gruppen.md).
 
 ### 🔄 Aktualisieren
 
@@ -148,10 +156,10 @@ Dockerfile              Build der App
 docker/entrypoint.sh    Start: Datenbank anlegen, Seed, App starten
 prisma/                 Datenbankschema und Seed
 scripts/                Trainer-Hash, Lichess-Import, Lernpfade bauen, Engine kopieren
-src/app/                Seiten und API (Schüler, Trainer, Übung, Medaillen, Statistik, Live-Partien, Turniere)
-src/lib/                Anmeldung, Verschlüsselung, Medaillen, Statistik, Themen, Lernpfade, Live-Logik, Turnier-Logik
+src/app/                Seiten und API (Schüler, Trainer, Übung, Medaillen, Statistik, Live-Partien, Turniere, Einstellungen, Gruppen)
+src/lib/                Anmeldung, Verschlüsselung, Medaillen, Statistik, Themen, Lernpfade, Live-Logik, Turnier-Logik, Einstellungen, Gruppen
 src/components/         Urkunden-Editor (SVG), Live-Brett und Analyse-Panel
-docs/                   Import-Anleitung, Live-Schach, Turniere, Datensicherung, Quellen und Lizenzen
+docs/                   Import-Anleitung, Live-Schach, Turniere, Einstellungen, Gruppen, Datensicherung, Quellen und Lizenzen
 ```
 
 ## 🔒 Datenschutz und Sicherheit
@@ -160,7 +168,7 @@ docs/                   Import-Anleitung, Live-Schach, Turniere, Datensicherung,
 - 🚫 Keine Tracker, keine externen Schriften oder CDNs im Betrieb. Das Schachbrett und die Zugprüfung laufen im Browser, die endgültige Prüfung erfolgt serverseitig. Die Engine-Analyse läuft im Browser und sendet keine Stellungen an externe Dienste.
 - 🗝️ Codes und Trainer-Code werden mit scrypt gehasht. Schülercodes liegen zusätzlich verschlüsselt (AES-256-GCM), damit der Trainer sie anzeigen kann. Sitzungen laufen über HttpOnly-, Secure- und SameSite-Cookies (12 Stunden).
 - 🛡️ Geschützte Container-Einstellungen: `no-new-privileges`, `cap_drop: ALL`, CPU- und RAM-Limits, Datenbank nur im internen Docker-Netz, TLS über Traefik.
-- 🗄️ Gespeichert werden Alias, Anmeldezeitpunkt, Lösungsversuche (Ergebnis, Tipps, Fehlversuche, Dauer, Zeitpunkt), Live-Partien (Alias, Züge, Ergebnis, Bedenkzeit) und Turniere (Alias, Paarungen, Ergebnisse). Beendete Partien und Turniere werden nach 90 Tagen automatisch gelöscht. Es gibt keinen Chat. Prüfe mit deiner Schule, ob dafür eine Einwilligung oder eine andere Rechtsgrundlage nötig ist, und ob Eltern informiert werden müssen.
+- 🗄️ Gespeichert werden Alias, Anmeldezeitpunkt, Lösungsversuche (Ergebnis, Tipps, Fehlversuche, Dauer, Zeitpunkt), Live-Partien (Alias, Züge, Ergebnis, Bedenkzeit), Turniere (Alias, Paarungen, Ergebnisse) und optional die Gruppenzugehörigkeit. Beendete Partien und Turniere werden nach einer einstellbaren Frist (Standard: 90 Tage) automatisch gelöscht. Es gibt keinen Chat. Prüfe mit deiner Schule, ob dafür eine Einwilligung oder eine andere Rechtsgrundlage nötig ist, und ob Eltern informiert werden müssen.
 - 💾 Die automatischen Datensicherungen enthalten diese Daten bis zum Ablauf der Aufbewahrung (7 Tage, 4 Wochen, 3 Monate), auch wenn Inhalte inzwischen gelöscht wurden. Kürze die Fristen in `compose.portainer.yml`, wenn deine Schule das verlangt.
 - 📣 Sicherheitslücken bitte nicht öffentlich melden, sondern über eine private Nachricht an den Repository-Inhaber.
 

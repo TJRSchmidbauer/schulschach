@@ -5,6 +5,7 @@ const items = [
   { key: 'puzzles', href: '/trainer/puzzles', label: 'Übungen' },
   { key: 'assignments', href: '/trainer/assignments', label: 'Hausaufgaben' },
   { key: 'live', href: '/trainer/live', label: 'Live-Partien' },
+  { key: 'tournaments', href: '/trainer/tournaments', label: 'Turniere' },
   { key: 'stats', href: '/trainer/stats', label: 'Statistik' },
   { key: 'certificates', href: '/trainer/certificates', label: 'Urkunden' },
 ] as const;
@@ -12,7 +13,7 @@ const items = [
 export default function TrainerNav({
   active,
 }: {
-  active: 'students' | 'puzzles' | 'assignments' | 'live' | 'stats' | 'certificates';
+  active: 'students' | 'puzzles' | 'assignments' | 'live' | 'tournaments' | 'stats' | 'certificates';
 }) {
   return (
     <nav style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.2rem', flexWrap: 'wrap' }}>

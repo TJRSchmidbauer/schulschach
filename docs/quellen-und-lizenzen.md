@@ -18,6 +18,11 @@ Stand: Oktober 2026. Dieses Dokument erklärt, woher Inhalte stammen und warum s
 - Zusammen mit der Engine werden `COPYING.txt` (Lizenztext), `AUTHORS.txt` und `README.txt` mit dem Quellverweis ausgeliefert (<https://github.com/nmrugg/stockfish.js>, <https://github.com/official-stockfish/Stockfish>). Die Analyse-Oberfläche verweist darauf.
 - Der übrige Code dieses Projekts steht weiter unter MIT. Ob das für deinen Einsatz ausreicht, musst du für deine Version selbst bewerten. Wer die Engine nicht ausliefern möchte, entfernt die Abhängigkeit `stockfish` und das Skript `scripts/copy-engine.mjs`. Live-Partien funktionieren auch ohne Engine.
 
+## Turnier-Auslosung
+
+- Die Schweizer-System-Auslosung und die Wertungen (Buchholz, Feinbuchholz, Sonneborn-Berger) sind eine **eigene Implementierung** (`src/lib/tournament`). Es wird keine Fremdbibliothek und kein fremder Quelltext eingebunden.
+- Als fachliche Orientierung dienten die allgemein bekannten Regeln aus Jugendspielordnungen und Feinwertungs-Beschreibungen. Regeln und Rechenverfahren sind nicht urheberrechtlich geschützt; Texte aus diesen Ordnungen wurden nicht übernommen.
+
 ## Lernpfade
 
 Die vier zusätzlichen Lernpfade (Matt-Muster, Taktik-Werkzeugkasten, Endspiel-Grundlagen, Verteidigung und Geduld) sind eine **eigene Zusammenstellung**:

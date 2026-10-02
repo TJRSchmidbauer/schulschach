@@ -1,6 +1,6 @@
 # SchulSchach AG
 
-Datensparsame, selbst gehostete Schach-Lernplattform für eine Schul-AG: Aufgaben lösen, Hausaufgaben vergeben, live gegeneinander spielen, Fortschritt sehen, Medaillen sammeln.
+Datensparsame, selbst gehostete Schach-Lernplattform für eine Schul-AG: Aufgaben lösen, Hausaufgaben vergeben, live gegeneinander spielen, Turniere auslosen, Fortschritt sehen, Medaillen sammeln.
 
 > **Hinweis zu KI und Verantwortung (bitte lesen)**
 > Dieses Projekt wurde mit Unterstützung von KI-Assistenz (Perplexity) entwickelt. Der Code wurde nicht durch eine unabhängige Sicherheits- oder Datenschutzprüfung geprüft und kann Fehler enthalten.
@@ -38,6 +38,7 @@ Datensparsame, selbst gehostete Schach-Lernplattform für eine Schul-AG: Aufgabe
 - Übungsdatenbank mit Filtern (Thema, Rating, Suche) und Brettvorschau
 - Hausaufgaben für alle oder ausgewählte Schüler, mit Fälligkeitsdatum
 - Live-Partien ansetzen (auch mit eigener Startstellung), live zusehen mit Engine-Analyse, Partien beenden
+- Turniere im Schweizer System für echte Brettpartien (bis 100 Teilnehmer): Auslosung, Ergebnisse, Rangliste mit Buchholz-Wertungen, große Beamer-Ansicht
 - Statistik je Schüler und Thema inklusive Schwachstellen
 - Urkunden als SVG: Der echte Name wird nur im Browser eingetragen und nie an den Server gesendet
 
@@ -105,6 +106,10 @@ Schüler öffnen auf der Startseite die Spiel-Lobby und fordern sich heraus. Der
 
 Wichtig: Es darf nur **eine** Instanz der App laufen, weil der Live-Nachrichtenverteiler im Speicher arbeitet.
 
+### Turniere
+
+Trainer-Bereich → Turniere: Teilnehmer wählen, Gast-Aliasse eintragen, Runden auslosen, Ergebnisse eintragen, Rangliste ansehen und die große Beamer-Ansicht öffnen. Regeln, Rangfolge und Grenzen: [docs/turniere.md](docs/turniere.md).
+
 ### Aktualisieren
 
 In Portainer den Stack mit „Pull and redeploy“ neu bereitstellen. Datenbankdaten bleiben im Volume erhalten. Prüfe vor größeren Updates das Backup.
@@ -117,7 +122,7 @@ Die Datenbank läuft als eigener Container (Dienst `db` in `compose.portainer.ym
 docker exec <db-container> pg_dump -U <db-user> <db-name> > schulschach-backup.sql
 ```
 
-Bewahre Backups verschlüsselt und zugriffsgeschützt auf. Sie enthalten Aliasse, Lernstand und Partien.
+Bewahre Backups verschlüsselt und zugriffsgeschützt auf. Sie enthalten Aliasse, Lernstand, Partien und Turniere.
 
 ## Lokale Entwicklung
 
@@ -140,10 +145,10 @@ Dockerfile              Build der App
 docker/entrypoint.sh    Start: Datenbank anlegen, Seed, App starten
 prisma/                 Datenbankschema und Seed
 scripts/                Trainer-Hash, Lichess-Import, Lernpfade bauen, Engine kopieren
-src/app/                Seiten und API (Schüler, Trainer, Übung, Medaillen, Statistik, Live-Partien)
-src/lib/                Anmeldung, Verschlüsselung, Medaillen, Statistik, Themen, Lernpfade, Live-Logik
+src/app/                Seiten und API (Schüler, Trainer, Übung, Medaillen, Statistik, Live-Partien, Turniere)
+src/lib/                Anmeldung, Verschlüsselung, Medaillen, Statistik, Themen, Lernpfade, Live-Logik, Turnier-Logik
 src/components/         Urkunden-Editor (SVG), Live-Brett und Analyse-Panel
-docs/                   Import-Anleitung, Live-Schach, Quellen und Lizenzen
+docs/                   Import-Anleitung, Live-Schach, Turniere, Quellen und Lizenzen
 ```
 
 ## Datenschutz und Sicherheit
@@ -152,13 +157,14 @@ docs/                   Import-Anleitung, Live-Schach, Quellen und Lizenzen
 - Keine Tracker, keine externen Schriften oder CDNs im Betrieb. Das Schachbrett und die Zugprüfung laufen im Browser, die endgültige Prüfung erfolgt serverseitig. Die Engine-Analyse läuft im Browser und sendet keine Stellungen an externe Dienste.
 - Codes und Trainer-Code werden mit scrypt gehasht. Schülercodes liegen zusätzlich verschlüsselt (AES-256-GCM), damit der Trainer sie anzeigen kann. Sitzungen laufen über HttpOnly-, Secure- und SameSite-Cookies (12 Stunden).
 - Geschützte Container-Einstellungen: `no-new-privileges`, `cap_drop: ALL`, CPU- und RAM-Limits, Datenbank nur im internen Docker-Netz, TLS über Traefik.
-- Gespeichert werden Alias, Anmeldezeitpunkt, Lösungsversuche (Ergebnis, Tipps, Fehlversuche, Dauer, Zeitpunkt) und Live-Partien (Alias, Züge, Ergebnis, Bedenkzeit). Beendete Partien werden nach 90 Tagen automatisch gelöscht. Es gibt keinen Chat. Prüfe mit deiner Schule, ob dafür eine Einwilligung oder eine andere Rechtsgrundlage nötig ist, und ob Eltern informiert werden müssen.
+- Gespeichert werden Alias, Anmeldezeitpunkt, Lösungsversuche (Ergebnis, Tipps, Fehlversuche, Dauer, Zeitpunkt), Live-Partien (Alias, Züge, Ergebnis, Bedenkzeit) und Turniere (Alias, Paarungen, Ergebnisse). Beendete Partien und Turniere werden nach 90 Tagen automatisch gelöscht. Es gibt keinen Chat. Prüfe mit deiner Schule, ob dafür eine Einwilligung oder eine andere Rechtsgrundlage nötig ist, und ob Eltern informiert werden müssen.
 - Sicherheitslücken bitte nicht öffentlich melden, sondern über eine private Nachricht an den Repository-Inhaber.
 
 ## Quellen und Lizenzen
 
 - Aufgaben: Lichess Open Database, **CC0 1.0**, <https://database.lichess.org>
 - Analyse-Engine: Stockfish.js, **GPL-3.0**, als getrennte Datei im Browser; Lizenztext und Quellverweis werden mitgeliefert
+- Turnier-Auslosung: eigene Implementierung ohne Fremdbibliothek
 - Lernpfade: eigene Zusammenstellung, eigene Texte; keine Inhalte geschützter Lehrwerke
 - Code und eigene Texte: **MIT**, siehe [LICENSE](LICENSE)
 - Drittsoftware und Details: [docs/quellen-und-lizenzen.md](docs/quellen-und-lizenzen.md)

@@ -3,34 +3,37 @@ import { standings } from './scoring';
 import type { PairingInput, PlayerInputFull, ProposedPairing, Standing } from './types';
 
 // Hauptverfahren: FIDE-Holländisches System (C.04.3) über die Bibliothek @echecs/swiss (MIT).
-// Die Bibliothek wird bewusst locker typisiert angesprochen und ihr Ergebnis wird geprüft.
-// Weicht etwas ab, greift der Rückfall weiter unten und die tatsächliche Form kommt ins Log.
+// Die Bibliothek (Version 5) arbeitet mit Runden-Objekten { games, byes } und liefert
+// ein Ergebnis der gleichen Form. Sie wird locker typisiert angesprochen, ihr Ergebnis wird
+// geprüft. Weicht etwas ab, greift der Rückfall weiter unten und die Form kommt ins Log.
 type LibGame = {
   white: string;
   black: string;
   result: 'white' | 'black' | 'draw' | 'none';
-  kind?: string;
 };
-const pair = rawPair as unknown as (players: { id: string; rating: number }[], games: LibGame[][]) => unknown;
+type LibBye = { player: string };
+type LibRound = { games: LibGame[]; byes: LibBye[] };
+const pair = rawPair as unknown as (players: { id: string; rating: number }[], rounds: LibRound[]) => unknown;
 
-function toGames(historyPairs: PairingInput[]): LibGame[][] {
+function toRounds(historyPairs: PairingInput[]): LibRound[] {
   const rounds = historyPairs.reduce((max, p) => Math.max(max, p.round), 0);
-  const games: LibGame[][] = [];
+  const out: LibRound[] = [];
   for (let r = 1; r <= rounds; r++) {
-    const list: LibGame[] = [];
+    const games: LibGame[] = [];
+    const byes: LibBye[] = [];
     for (const p of historyPairs) {
       if (p.round !== r) continue;
       if (p.blackId === null) {
-        list.push({ white: p.whiteId, black: '', result: 'white', kind: 'pairing-bye' });
+        byes.push({ player: p.whiteId });
         continue;
       }
-      if (p.result === 'WHITE_WIN') list.push({ white: p.whiteId, black: p.blackId, result: 'white' });
-      else if (p.result === 'BLACK_WIN') list.push({ white: p.whiteId, black: p.blackId, result: 'black' });
-      else if (p.result === 'DRAW') list.push({ white: p.whiteId, black: p.blackId, result: 'draw' });
+      if (p.result === 'WHITE_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 'white' });
+      else if (p.result === 'BLACK_WIN') games.push({ white: p.whiteId, black: p.blackId, result: 'black' });
+      else if (p.result === 'DRAW') games.push({ white: p.whiteId, black: p.blackId, result: 'draw' });
     }
-    games.push(list);
+    out.push({ games, byes });
   }
-  return games;
+  return out;
 }
 
 function asList<T>(x: unknown): T[] {
@@ -52,30 +55,32 @@ function describe(x: unknown): string {
 
 function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): ProposedPairing[] {
   const libPlayers = players.map((p) => ({ id: p.id, rating: 100000 - p.startRank }));
-  const raw = pair(libPlayers, toGames(historyPairs));
+  const raw = pair(libPlayers, toRounds(historyPairs));
   if (raw && typeof (raw as { then?: unknown }).then === 'function') {
     throw new Error('Die Bibliothek liefert ein Promise statt eines Ergebnisses.');
   }
-  const result = (raw ?? {}) as { pairings?: unknown; byes?: unknown };
-  const pairings = asList<{ white: string; black: string }>(result.pairings);
+  const result = (raw ?? {}) as { games?: unknown; pairings?: unknown; byes?: unknown };
+  const games = asList<{ white: string; black: string }>(result.games ?? result.pairings);
   const byes = asList<{ player?: string; id?: string } | string>(result.byes);
-  if (pairings.length === 0 && byes.length === 0) {
+  if (games.length === 0 && byes.length === 0) {
     throw new Error('Unerwartete Ergebnisform: ' + describe(raw));
   }
 
   const known = new Set(players.map((p) => p.id));
   const history = playedSet(historyPairs);
+  const hadBye = new Set(historyPairs.filter((p) => p.blackId === null).map((p) => p.whiteId));
   const out: ProposedPairing[] = [];
-  for (const p of pairings) {
-    if (!p || !known.has(p.white) || !known.has(p.black)) {
-      throw new Error('Unbekannter Spieler in der Auslosung: ' + describe(p));
+  for (const g of games) {
+    if (!g || !known.has(g.white) || !known.has(g.black)) {
+      throw new Error('Unbekannter Spieler in der Auslosung: ' + describe(g));
     }
-    if (seen(p.white, p.black, history)) throw new Error('Wiederholungspaarung in der Auslosung.');
-    out.push({ whiteId: p.white, blackId: p.black, repeated: false });
+    if (seen(g.white, g.black, history)) throw new Error('Wiederholungspaarung in der Auslosung.');
+    out.push({ whiteId: g.white, blackId: g.black, repeated: false });
   }
   for (const b of byes) {
     const id = typeof b === 'string' ? b : (b.player ?? b.id ?? '');
     if (!known.has(id)) throw new Error('Unbekannter Spieler beim Freilos: ' + describe(b));
+    if (hadBye.has(id)) throw new Error('Zweites Freilos für dieselbe Person: ' + id);
     out.push({ whiteId: id, blackId: null, repeated: false, note: 'Freilos' });
   }
 
@@ -87,7 +92,7 @@ function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): Pr
   if (used.size !== players.length) {
     throw new Error('Die Auslosung ist unvollständig: ' + describe(raw));
   }
-  return out;
+  return out.sort((a, b) => Number(a.blackId === null) - Number(b.blackId === null));
 }
 
 // ---------------------------------------------------------------------------------------

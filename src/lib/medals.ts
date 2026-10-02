@@ -24,9 +24,10 @@ type MedalDef = {
   id: string;
   icon: string;
   title: string;
-  text: string;
+  text: (target: number) => string;
   tier: Tier;
   target: number;
+  scalable: boolean;
   value: (s: Stats) => number;
 };
 
@@ -89,38 +90,40 @@ export function computeStats(rows: AttemptRow[], now: Date = new Date()): Stats 
 const th = (t: string) => (s: Stats) => s.byTheme[t] ?? 0;
 
 const MEDALS: MedalDef[] = [
-  { id: 'first', icon: '🌱', title: 'Erster Schritt', text: 'Löse deine erste Aufgabe.', tier: 'bronze', target: 1, value: (s) => s.solved },
-  { id: 'solved10', icon: '♟️', title: 'Bauernstark', text: 'Löse 10 Aufgaben.', tier: 'bronze', target: 10, value: (s) => s.solved },
-  { id: 'solved25', icon: '🐴', title: 'Springer-Talent', text: 'Löse 25 Aufgaben.', tier: 'silver', target: 25, value: (s) => s.solved },
-  { id: 'solved50', icon: '🏰', title: 'Turm-Held', text: 'Löse 50 Aufgaben.', tier: 'silver', target: 50, value: (s) => s.solved },
-  { id: 'solved100', icon: '👑', title: 'Schachkönig', text: 'Löse 100 Aufgaben.', tier: 'gold', target: 100, value: (s) => s.solved },
-  { id: 'solved250', icon: '🏆', title: 'Großmeister-Anwärter', text: 'Löse 250 Aufgaben.', tier: 'gold', target: 250, value: (s) => s.solved },
-  { id: 'indep10', icon: '💡', title: 'Selbstdenker', text: 'Löse 10 Aufgaben ganz ohne Tipp.', tier: 'bronze', target: 10, value: (s) => s.independent },
-  { id: 'indep50', icon: '🧠', title: 'Superhirn', text: 'Löse 50 Aufgaben ganz ohne Tipp.', tier: 'silver', target: 50, value: (s) => s.independent },
-  { id: 'streak3', icon: '🔥', title: 'Dranbleiber', text: 'Übe an 3 Tagen hintereinander.', tier: 'bronze', target: 3, value: (s) => s.longestStreak },
-  { id: 'streak7', icon: '⚡', title: 'Wochenserie', text: 'Übe an 7 Tagen hintereinander.', tier: 'silver', target: 7, value: (s) => s.longestStreak },
-  { id: 'streak14', icon: '🚀', title: 'Schach-Profi', text: 'Übe an 14 Tagen hintereinander.', tier: 'gold', target: 14, value: (s) => s.longestStreak },
-  { id: 'fork10', icon: '🍴', title: 'Gabelmeister', text: 'Löse 10 Gabel-Aufgaben.', tier: 'bronze', target: 10, value: th('fork') },
-  { id: 'pin10', icon: '📌', title: 'Fesselkünstler', text: 'Löse 10 Fesselungs-Aufgaben.', tier: 'bronze', target: 10, value: th('pin') },
-  { id: 'mate1', icon: '🎯', title: 'Mattjäger', text: 'Löse 10 Aufgaben „Matt in 1“.', tier: 'bronze', target: 10, value: th('mateIn1') },
-  { id: 'mate2', icon: '🧩', title: 'Matt-Planer', text: 'Löse 10 Aufgaben „Matt in 2“.', tier: 'silver', target: 10, value: th('mateIn2') },
-  { id: 'backrank', icon: '🚪', title: 'Hintertür-Experte', text: 'Löse 5 Grundreihenmatt-Aufgaben.', tier: 'silver', target: 5, value: th('backRankMate') },
-  { id: 'discovered', icon: '🎭', title: 'Abzugskünstler', text: 'Löse 5 Abzugsangriff-Aufgaben.', tier: 'silver', target: 5, value: th('discoveredAttack') },
-  { id: 'allround', icon: '🌈', title: 'Allrounder', text: 'Löse in 5 verschiedenen Themen je mindestens 5 Aufgaben.', tier: 'gold', target: 5, value: (s) => Object.values(s.byTheme).filter((n) => n >= 5).length },
+  { id: 'first', icon: '🌱', title: 'Erster Schritt', text: () => 'Löse deine erste Aufgabe.', tier: 'bronze', target: 1, scalable: false, value: (s) => s.solved },
+  { id: 'solved10', icon: '♟️', title: 'Bauernstark', text: (n) => `Löse ${n} Aufgaben.`, tier: 'bronze', target: 10, scalable: true, value: (s) => s.solved },
+  { id: 'solved25', icon: '🐴', title: 'Springer-Talent', text: (n) => `Löse ${n} Aufgaben.`, tier: 'silver', target: 25, scalable: true, value: (s) => s.solved },
+  { id: 'solved50', icon: '🏰', title: 'Turm-Held', text: (n) => `Löse ${n} Aufgaben.`, tier: 'silver', target: 50, scalable: true, value: (s) => s.solved },
+  { id: 'solved100', icon: '👑', title: 'Schachkönig', text: (n) => `Löse ${n} Aufgaben.`, tier: 'gold', target: 100, scalable: true, value: (s) => s.solved },
+  { id: 'solved250', icon: '🏆', title: 'Großmeister-Anwärter', text: (n) => `Löse ${n} Aufgaben.`, tier: 'gold', target: 250, scalable: true, value: (s) => s.solved },
+  { id: 'indep10', icon: '💡', title: 'Selbstdenker', text: (n) => `Löse ${n} Aufgaben ganz ohne Tipp.`, tier: 'bronze', target: 10, scalable: true, value: (s) => s.independent },
+  { id: 'indep50', icon: '🧠', title: 'Superhirn', text: (n) => `Löse ${n} Aufgaben ganz ohne Tipp.`, tier: 'silver', target: 50, scalable: true, value: (s) => s.independent },
+  { id: 'streak3', icon: '🔥', title: 'Dranbleiber', text: (n) => `Übe an ${n} Tagen hintereinander.`, tier: 'bronze', target: 3, scalable: true, value: (s) => s.longestStreak },
+  { id: 'streak7', icon: '⚡', title: 'Wochenserie', text: (n) => `Übe an ${n} Tagen hintereinander.`, tier: 'silver', target: 7, scalable: true, value: (s) => s.longestStreak },
+  { id: 'streak14', icon: '🚀', title: 'Schach-Profi', text: (n) => `Übe an ${n} Tagen hintereinander.`, tier: 'gold', target: 14, scalable: true, value: (s) => s.longestStreak },
+  { id: 'fork10', icon: '🍴', title: 'Gabelmeister', text: (n) => `Löse ${n} Gabel-Aufgaben.`, tier: 'bronze', target: 10, scalable: true, value: th('fork') },
+  { id: 'pin10', icon: '📌', title: 'Fesselkünstler', text: (n) => `Löse ${n} Fesselungs-Aufgaben.`, tier: 'bronze', target: 10, scalable: true, value: th('pin') },
+  { id: 'mate1', icon: '🎯', title: 'Mattjäger', text: (n) => `Löse ${n} Aufgaben „Matt in 1“.`, tier: 'bronze', target: 10, scalable: true, value: th('mateIn1') },
+  { id: 'mate2', icon: '🧩', title: 'Matt-Planer', text: (n) => `Löse ${n} Aufgaben „Matt in 2“.`, tier: 'silver', target: 10, scalable: true, value: th('mateIn2') },
+  { id: 'backrank', icon: '🚪', title: 'Hinterтür-Experte', text: (n) => `Löse ${n} Grundreihenmatt-Aufgaben.`, tier: 'silver', target: 5, scalable: true, value: th('backRankMate') },
+  { id: 'discovered', icon: '🎭', title: 'Abzugskünstler', text: (n) => `Löse ${n} Abzugsangriff-Aufgaben.`, tier: 'silver', target: 5, scalable: true, value: th('discoveredAttack') },
+  { id: 'allround', icon: '🌈', title: 'Allrounder', text: () => 'Löse in 5 verschiedenen Themen je mindestens 5 Aufgaben.', tier: 'gold', target: 5, scalable: false, value: (s) => Object.values(s.byTheme).filter((n) => n >= 5).length },
 ];
 
-export function evaluateMedals(stats: Stats): MedalState[] {
+// scale: 1 = Standardwerte, 0.5 = leichter, 2 = schwerer (Einstellungen → Medaillen).
+export function evaluateMedals(stats: Stats, scale: number = 1): MedalState[] {
   return MEDALS.map((m) => {
+    const target = m.scalable ? Math.max(1, Math.round(m.target * scale)) : m.target;
     const v = m.value(stats);
     return {
       id: m.id,
       icon: m.icon,
       title: m.title,
-      text: m.text,
+      text: m.text(target),
       tier: m.tier,
-      target: m.target,
-      current: Math.min(v, m.target),
-      earned: v >= m.target,
+      target,
+      current: Math.min(v, target),
+      earned: v >= target,
     };
   });
 }

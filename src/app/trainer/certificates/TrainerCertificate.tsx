@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import CertificateEditor from '@/components/CertificateEditor';
+import type { CertDefaults } from '@/lib/extras';
 
 type Option = { alias: string; text: string };
 
-export default function TrainerCertificate({ students }: { students: Option[] }) {
+export default function TrainerCertificate({ students, cert }: { students: Option[]; cert?: CertDefaults }) {
   const [alias, setAlias] = useState(students[0]?.alias ?? '');
   const current = students.find((s) => s.alias === alias);
 
@@ -32,7 +33,7 @@ export default function TrainerCertificate({ students }: { students: Option[] })
           ))}
         </select>
       </div>
-      <CertificateEditor achievementDefault={current?.text ?? ''} resetKey={alias} />
+      <CertificateEditor achievementDefault={current?.text ?? ''} resetKey={alias} defaults={cert} />
     </div>
   );
 }

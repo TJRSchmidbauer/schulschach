@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { medalScale } from '@/lib/extras';
+import { getExtras } from '@/lib/extras-server';
 import { computeStats, evaluateMedals } from '@/lib/medals';
 
 const TIER_COLOR = { bronze: '#cd7f32', silver: '#9aa5b1', gold: '#d4a017' } as const;
@@ -17,7 +19,8 @@ export default async function AwardsPage() {
   const stats = computeStats(
     attempts.map((a) => ({ puzzleId: a.puzzleId, result: a.result, createdAt: a.createdAt, themes: a.puzzle.themes })),
   );
-  const medals = evaluateMedals(stats);
+  const extras = await getExtras();
+  const medals = evaluateMedals(stats, medalScale(extras.medalLevel));
   const earned = medals.filter((m) => m.earned);
   const next = medals
     .filter((m) => !m.earned)

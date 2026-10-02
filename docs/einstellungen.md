@@ -16,6 +16,14 @@ Hinweis: Einige Bereiche haben ihre Farben noch fest im Code (Turnierverwaltung,
 
 Freies Üben, Live-Partien, Turniere und Medaillen lassen sich einzeln ausschalten. Links dorthin verschwinden, und beim direkten Aufruf erscheint ein Hinweis (Trainer sehen einen Link zu den Einstellungen). Wichtig: Das blendet die Oberfläche aus. Die Schnittstellen im Hintergrund bleiben aktiv.
 
+## Medaillen: Schwierigkeit
+
+Die Stufe bestimmt, wie viele Aufgaben, Tage oder Themen für eine Medaille nötig sind: **Leicht** (halbe Zielwerte), **Normal** (Standard) oder **Schwer** (doppelte Zielwerte). Die Beschreibungen der Medaillen passen sich an, zum Beispiel „Löse 5 Aufgaben“ statt „Löse 10 Aufgaben“. „Erster Schritt“ und „Allrounder“ bleiben immer gleich. Medaillen werden aus dem Lernstand berechnet: Wechselst du die Stufe, können bereits verdiente Medaillen verschwinden oder neu hinzukommen. Auch die Zahl auf der Urkunde („Medaillen gesammelt“) folgt der Stufe.
+
+## Urkunden-Vorlage
+
+Titel (zum Beispiel URKUNDE oder ANERKENNUNG, höchstens 14 Zeichen), Standard-Überschrift, Standard-Unterschrift und vier Farbpaletten (Marineblau, Tannengrün, Bordeaux, Schwarz, jeweils mit Gold). Die Werte sind die Voreinstellung im Urkunden-Editor und lassen sich dort pro Urkunde ändern (Überschrift und Unterschrift). Der Name der Schüler wird weiterhin nur im Browser eingetragen und nie an den Server gesendet.
+
 ## Aufbewahrung
 
 Beendete Live-Partien und beendete Turniere werden nach einer einstellbaren Zeit automatisch gelöscht (7 bis 365 Tage, Standard 90). Die beiden Fristen sind getrennt einstellbar. Die Bereinigung läuft höchstens einmal pro Stunde, wenn die Lobby, die Turnierliste oder eine Turnierseite aufgerufen wird. Bereits erstellte Datensicherungen enthalten gelöschte Daten bis zu ihrem eigenen Ablauf weiter, siehe [datensicherung.md](datensicherung.md). Laufende Turniere und Entwürfe werden nie automatisch gelöscht.

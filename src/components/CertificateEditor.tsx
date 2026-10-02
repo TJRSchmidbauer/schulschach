@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { DEFAULT_EXTRAS, certPalette, type CertDefaults } from '@/lib/extras';
 
-type Props = { achievementDefault: string; resetKey?: string };
+type Props = { achievementDefault: string; resetKey?: string; defaults?: CertDefaults };
 
 const W = 1123;
 const H = 794;
 const SERIF = "Georgia, 'Times New Roman', serif";
-const NAVY = '#1f2a44';
-const GOLD = '#c9a227';
 const SQUARES = Array.from({ length: 45 }, (_, i) => i);
 
 function star(cx: number, cy: number, outer: number, inner: number): string {
@@ -41,13 +40,17 @@ function todayText(): string {
   return new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-export default function CertificateEditor({ achievementDefault, resetKey }: Props) {
+export default function CertificateEditor({ achievementDefault, resetKey, defaults = DEFAULT_EXTRAS.cert }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [name, setName] = useState('');
-  const [occasion, setOccasion] = useState('Schach-AG');
+  const [occasion, setOccasion] = useState(defaults.occasion);
   const [achievement, setAchievement] = useState(achievementDefault);
   const [date, setDate] = useState('');
-  const [signer, setSigner] = useState('Trainer/in');
+  const [signer, setSigner] = useState(defaults.signer);
+
+  const pal = certPalette(defaults.color);
+  const NAVY = pal.main;
+  const GOLD = pal.gold;
 
   useEffect(() => {
     setDate(todayText());
@@ -92,6 +95,7 @@ export default function CertificateEditor({ achievementDefault, resetKey }: Prop
   }
 
   const nameSize = name.length > 26 ? 40 : name.length > 20 ? 48 : name.length > 14 ? 56 : 64;
+  const titleSize = defaults.title.length > 11 ? 56 : defaults.title.length > 8 ? 66 : 76;
   const lines = wrap(achievement, 58);
 
   const field: React.CSSProperties = {
@@ -146,10 +150,10 @@ export default function CertificateEditor({ achievementDefault, resetKey }: Prop
           <rect x="20" y="20" width="1083" height="754" fill="none" stroke={NAVY} strokeWidth="6" />
           <rect x="34" y="34" width="1055" height="726" fill="none" stroke={GOLD} strokeWidth="2" />
           {SQUARES.map((i) => (
-            <rect key={`t${i}`} x={50 + i * 23} y={50} width={23} height={23} fill={i % 2 === 0 ? NAVY : '#efe3c2'} />
+            <rect key={`t${i}`} x={50 + i * 23} y={50} width={23} height={23} fill={i % 2 === 0 ? NAVY : pal.soft} />
           ))}
           {SQUARES.map((i) => (
-            <rect key={`b${i}`} x={50 + i * 23} y={721} width={23} height={23} fill={i % 2 === 0 ? '#efe3c2' : NAVY} />
+            <rect key={`b${i}`} x={50 + i * 23} y={721} width={23} height={23} fill={i % 2 === 0 ? pal.soft : NAVY} />
           ))}
 
           <polygon points="545,152 525,207 544,198 556,214 566,155" fill="#b8860b" />
@@ -158,8 +162,8 @@ export default function CertificateEditor({ achievementDefault, resetKey }: Prop
           <circle cx="561.5" cy="125" r="29" fill="#f3d675" stroke={NAVY} strokeWidth="2" />
           <polygon points={star(561.5, 125, 19, 8)} fill={NAVY} />
 
-          <text x={W / 2} y="268" textAnchor="middle" fontSize="76" fontWeight="bold" letterSpacing="14" fill={NAVY} fontFamily={SERIF}>URKUNDE</text>
-          <text x={W / 2} y="310" textAnchor="middle" fontSize="28" letterSpacing="3" fill="#8a6d1d" fontFamily={SERIF}>{occasion}</text>
+          <text x={W / 2} y="268" textAnchor="middle" fontSize={titleSize} fontWeight="bold" letterSpacing="14" fill={NAVY} fontFamily={SERIF}>{defaults.title}</text>
+          <text x={W / 2} y="310" textAnchor="middle" fontSize="28" letterSpacing="3" fill={pal.occasion} fontFamily={SERIF}>{occasion}</text>
           <text x={W / 2} y="372" textAnchor="middle" fontSize="24" fontStyle="italic" fill="#555555" fontFamily={SERIF}>Diese Urkunde erhält</text>
           <text x={W / 2} y="450" textAnchor="middle" fontSize={nameSize} fontStyle="italic" fill={NAVY} fontFamily={SERIF}>{name}</text>
           <line x1="261" y1="468" x2="862" y2="468" stroke={NAVY} strokeWidth="1.5" />

@@ -81,6 +81,12 @@ export default async function LearnPage() {
       )}
 
       <div className="card" style={{ marginBottom: '1.2rem' }}>
+        <h2>♟ Live-Partie</h2>
+        <p className="muted">Spiele gegen andere aus der AG, mit Schachuhr.</p>
+        <Link className="btn" href="/play">Zur Spiel-Lobby</Link>
+      </div>
+
+      <div className="card" style={{ marginBottom: '1.2rem' }}>
         <h2>Freies Üben</h2>
         <p className="muted">Such dir selbst Aufgaben aus – dein Trainer sieht, was du übst.</p>
         <Link className="btn" href="/free">Aufgaben aussuchen</Link>

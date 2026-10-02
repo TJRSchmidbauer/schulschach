@@ -11,6 +11,13 @@ Stand: Oktober 2026. Dieses Dokument erklärt, woher Inhalte stammen und warum s
 - Hinweis: Andere Lichess-Datensätze (zum Beispiel Turnierübertragungen) stehen unter anderen Lizenzen (CC BY-SA 4.0). Diese werden hier **nicht** verwendet.
 - Der Lichess-Quellcode steht unter AGPL-3.0. Dieses Projekt enthält keinen Lichess-Quellcode.
 
+## Schach-Engine (Analyse)
+
+- Verwendet wird **Stockfish.js** (WebAssembly-Fassung der Engine Stockfish) aus dem npm-Paket `stockfish`, Lizenz **GPL-3.0**.
+- Die Engine wird beim Build aus dem Paket nach `public/engine` kopiert und unverändert als getrennte Datei ausgeliefert. Sie läuft im Browser als Web Worker und wird nur über Textnachrichten (UCI-Protokoll) angesprochen.
+- Zusammen mit der Engine werden `COPYING.txt` (Lizenztext), `AUTHORS.txt` und `README.txt` mit dem Quellverweis ausgeliefert (<https://github.com/nmrugg/stockfish.js>, <https://github.com/official-stockfish/Stockfish>). Die Analyse-Oberfläche verweist darauf.
+- Der übrige Code dieses Projekts steht weiter unter MIT. Ob das für deinen Einsatz ausreicht, musst du für deine Version selbst bewerten. Wer die Engine nicht ausliefern möchte, entfernt die Abhängigkeit `stockfish` und das Skript `scripts/copy-engine.mjs`. Live-Partien funktionieren auch ohne Engine.
+
 ## Lernpfade
 
 Die vier zusätzlichen Lernpfade (Matt-Muster, Taktik-Werkzeugkasten, Endspiel-Grundlagen, Verteidigung und Geduld) sind eine **eigene Zusammenstellung**:
@@ -34,7 +41,7 @@ Wer eigene Materialien ergänzt, prüft bitte selbst deren Lizenz und nennt die 
 
 ## Eigener Code und eigene Texte
 
-- Lizenz: MIT (siehe `LICENSE`).
+- Lizenz: MIT (siehe `LICENSE`). Ausgenommen ist die mitgelieferte Engine (siehe oben).
 
 ## Drittsoftware (Auswahl)
 
@@ -45,6 +52,7 @@ Wer eigene Materialien ergänzt, prüft bitte selbst deren Lizenz und nennt die 
 | react-chessboard | Schachbrett-Darstellung | MIT |
 | Prisma | Datenbankzugriff | Apache-2.0 |
 | tsx | Skripte ausführen | MIT |
+| Stockfish.js | Analyse-Engine im Browser | GPL-3.0 |
 | PostgreSQL | Datenbank | PostgreSQL License |
 | zstd | Entpacken der Lichess-Datei | BSD-3-Clause (alternativ GPL-2.0) |
 

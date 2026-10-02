@@ -1,11 +1,15 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
+import { getExtras } from '@/lib/extras-server';
+import { getSettings } from '@/lib/settings';
 import Lobby from './Lobby';
 
 export default async function PlayPage() {
   const session = await getSession();
   if (!session || session.role !== 'STUDENT') redirect('/');
+  const extras = await getExtras();
+  const settings = await getSettings();
 
   return (
     <div>
@@ -18,7 +22,7 @@ export default async function PlayPage() {
           Spiele gegen andere aus der AG, mit Schachuhr. Es gibt keinen Chat. Dein Trainer kann zusehen.
         </p>
       </div>
-      <Lobby />
+      <Lobby controls={extras.live.controls} defaultControl={extras.live.defaultControl} retentionDays={settings.retention.games} />
     </div>
   );
 }

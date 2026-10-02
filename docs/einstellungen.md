@@ -16,6 +16,10 @@ Hinweis: Einige Bereiche haben ihre Farben noch fest im Code (Turnierverwaltung,
 
 Freies Üben, Live-Partien, Turniere und Medaillen lassen sich einzeln ausschalten. Links dorthin verschwinden, und beim direkten Aufruf erscheint ein Hinweis (Trainer sehen einen Link zu den Einstellungen). Wichtig: Das blendet die Oberfläche aus. Die Schnittstellen im Hintergrund bleiben aktiv.
 
+## Live-Partien: Bedenkzeiten
+
+Du legst fest, welche der fünf Bedenkzeiten (5 Min + 3 Sek, 10 Min, 10 Min + 5 Sek, 15 Min + 10 Sek, 30 Min) Schüler in der Lobby wählen dürfen und welche vorausgewählt ist. Mindestens eine Zeit muss erlaubt bleiben. Der Server prüft die Auswahl ebenfalls: Eine nicht erlaubte Bedenkzeit wird auch dann abgelehnt, wenn jemand die Oberfläche umgeht. Beim Ansetzen einer Partie im Trainer-Bereich stehen weiterhin alle Zeiten zur Verfügung. Bereits laufende oder wartende Partien bleiben unverändert.
+
 ## Medaillen: Schwierigkeit
 
 Die Stufe bestimmt, wie viele Aufgaben, Tage oder Themen für eine Medaille nötig sind: **Leicht** (halbe Zielwerte), **Normal** (Standard) oder **Schwer** (doppelte Zielwerte). Die Beschreibungen der Medaillen passen sich an, zum Beispiel „Löse 5 Aufgaben“ statt „Löse 10 Aufgaben“. „Erster Schritt“ und „Allrounder“ bleiben immer gleich. Medaillen werden aus dem Lernstand berechnet: Wechselst du die Stufe, können bereits verdiente Medaillen verschwinden oder neu hinzukommen. Auch die Zahl auf der Urkunde („Medaillen gesammelt“) folgt der Stufe.

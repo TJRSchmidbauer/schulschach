@@ -1,3 +1,5 @@
+import { CONTROLS } from './live/types';
+
 export type MedalLevel = 'leicht' | 'normal' | 'schwer';
 
 export const MEDAL_LEVELS: { id: MedalLevel; label: string; scale: number; hint: string }[] = [
@@ -27,11 +29,16 @@ export function certPalette(id: string): CertPalette {
 
 export type CertDefaults = { title: string; occasion: string; signer: string; color: CertColorId };
 
-export type Extras = { medalLevel: MedalLevel; cert: CertDefaults };
+export type LiveExtras = { controls: string[]; defaultControl: string };
+
+export type Extras = { medalLevel: MedalLevel; cert: CertDefaults; live: LiveExtras };
+
+const ALL_CONTROLS: string[] = CONTROLS.map((c) => c.id);
 
 export const DEFAULT_EXTRAS: Extras = {
   medalLevel: 'normal',
   cert: { title: 'URKUNDE', occasion: 'Schach-AG', signer: 'Trainer/in', color: 'marine' },
+  live: { controls: ALL_CONTROLS, defaultControl: '10+0' },
 };
 
 export const EXTRAS_LIMITS = { title: 14, occasion: 40, signer: 40 } as const;
@@ -49,6 +56,13 @@ export function sanitizeExtras(input: unknown): { ok: true; value: Extras } | { 
   const c = (o.cert && typeof o.cert === 'object' ? o.cert : {}) as Record<string, unknown>;
   const color = CERT_COLORS.find((p) => p.id === c.color)?.id;
   if (!color) return { ok: false, error: 'Diese Urkunden-Farbe gibt es nicht.' };
+
+  const l = (o.live && typeof o.live === 'object' ? o.live : {}) as Record<string, unknown>;
+  const wanted = Array.isArray(l.controls) ? (l.controls as unknown[]) : ALL_CONTROLS;
+  const controls = ALL_CONTROLS.filter((id) => wanted.includes(id));
+  if (controls.length === 0) return { ok: false, error: 'Mindestens eine Bedenkzeit muss erlaubt bleiben.' };
+  const defaultControl = typeof l.defaultControl === 'string' && controls.includes(l.defaultControl) ? l.defaultControl : controls[0];
+
   return {
     ok: true,
     value: {
@@ -59,6 +73,7 @@ export function sanitizeExtras(input: unknown): { ok: true; value: Extras } | { 
         signer: line(c.signer, EXTRAS_LIMITS.signer, DEFAULT_EXTRAS.cert.signer),
         color,
       },
+      live: { controls, defaultControl },
     },
   };
 }

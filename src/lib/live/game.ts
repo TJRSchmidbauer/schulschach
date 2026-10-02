@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { getExtras } from '@/lib/extras-server';
 import { getSettings } from '@/lib/settings';
 import { publish } from './bus';
 import { STANDARD_FEN, controlLabel, findControl, type Color, type GameSummary, type GameView } from './types';
@@ -195,6 +196,8 @@ export function checkFen(input: string): { fen: string } | Fail {
 export async function createChallenge(userId: string, controlId: string, pref: string): Promise<GameRow | Fail> {
   const control = findControl(controlId);
   if (!control) return fail('Unbekannte Bedenkzeit.', 400);
+  const allowed = (await getExtras()).live.controls;
+  if (!allowed.includes(control.id)) return fail('Diese Bedenkzeit ist nicht erlaubt.', 400);
   if (await activeGameOf(userId)) return fail('Du hast schon eine offene oder laufende Partie.', 409);
   const color: Color = pref === 'w' || pref === 'b' ? pref : Math.random() < 0.5 ? 'w' : 'b';
   const ms = control.initial * 1000;

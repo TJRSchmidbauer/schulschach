@@ -105,7 +105,7 @@ const MEDALS: MedalDef[] = [
   { id: 'pin10', icon: '📌', title: 'Fesselkünstler', text: (n) => `Löse ${n} Fesselungs-Aufgaben.`, tier: 'bronze', target: 10, scalable: true, value: th('pin') },
   { id: 'mate1', icon: '🎯', title: 'Mattjäger', text: (n) => `Löse ${n} Aufgaben „Matt in 1“.`, tier: 'bronze', target: 10, scalable: true, value: th('mateIn1') },
   { id: 'mate2', icon: '🧩', title: 'Matt-Planer', text: (n) => `Löse ${n} Aufgaben „Matt in 2“.`, tier: 'silver', target: 10, scalable: true, value: th('mateIn2') },
-  { id: 'backrank', icon: '🚪', title: 'Hinterтür-Experte', text: (n) => `Löse ${n} Grundreihenmatt-Aufgaben.`, tier: 'silver', target: 5, scalable: true, value: th('backRankMate') },
+  { id: 'backrank', icon: '🚪', title: 'Hintertür-Experte', text: (n) => `Löse ${n} Grundreihenmatt-Aufgaben.`, tier: 'silver', target: 5, scalable: true, value: th('backRankMate') },
   { id: 'discovered', icon: '🎭', title: 'Abzugskünstler', text: (n) => `Löse ${n} Abzugsangriff-Aufgaben.`, tier: 'silver', target: 5, scalable: true, value: th('discoveredAttack') },
   { id: 'allround', icon: '🌈', title: 'Allrounder', text: () => 'Löse in 5 verschiedenen Themen je mindestens 5 Aufgaben.', tier: 'gold', target: 5, scalable: false, value: (s) => Object.values(s.byTheme).filter((n) => n >= 5).length },
 ];

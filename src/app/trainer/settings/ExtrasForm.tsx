@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CERT_COLORS, EXTRAS_LIMITS, MEDAL_LEVELS, type CertColorId, type Extras, type MedalLevel } from '@/lib/extras';
+import { CONTROLS, controlLabel } from '@/lib/live/types';
 
 const field: React.CSSProperties = {
   textTransform: 'none',
@@ -24,6 +25,19 @@ export default function ExtrasForm({ initial }: { initial: Extras }) {
 
   function setCert<K extends keyof Extras['cert']>(key: K, value: Extras['cert'][K]) {
     setX((prev) => ({ ...prev, cert: { ...prev.cert, [key]: value } }));
+    setMsg(null);
+  }
+
+  function toggleControl(id: string, on: boolean) {
+    setX((prev) => {
+      const set = new Set(prev.live.controls);
+      if (on) set.add(id);
+      else set.delete(id);
+      if (set.size === 0) return prev;
+      const controls = CONTROLS.map((c) => c.id as string).filter((cid) => set.has(cid));
+      const defaultControl = controls.includes(prev.live.defaultControl) ? prev.live.defaultControl : controls[0];
+      return { ...prev, live: { controls, defaultControl } };
+    });
     setMsg(null);
   }
 
@@ -70,6 +84,25 @@ export default function ExtrasForm({ initial }: { initial: Extras }) {
       </div>
 
       <div className='card' style={{ marginBottom: '1.2rem' }}>
+        <h2>Live-Partien: Bedenkzeiten</h2>
+        <p className='muted'>
+          Diese Bedenkzeiten dürfen Schüler in der Lobby wählen. Mindestens eine muss erlaubt bleiben. Beim Ansetzen einer Partie im Trainer-Bereich stehen weiterhin alle Zeiten zur Verfügung.
+        </p>
+        {CONTROLS.map((c) => (
+          <label key={c.id} style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', margin: '0.5rem 0', fontWeight: 400 }}>
+            <input type='checkbox' checked={x.live.controls.includes(c.id)} onChange={(e) => toggleControl(c.id, e.target.checked)} />
+            <span>{controlLabel(c.initial, c.increment)}</span>
+          </label>
+        ))}
+        <label htmlFor='dc'>Vorausgewählte Bedenkzeit</label>
+        <select id='dc' value={x.live.defaultControl} onChange={(e) => { setX((p) => ({ ...p, live: { ...p.live, defaultControl: e.target.value } })); setMsg(null); }} style={{ ...field, width: 'auto' }}>
+          {CONTROLS.filter((c) => x.live.controls.includes(c.id)).map((c) => (
+            <option key={c.id} value={c.id}>{controlLabel(c.initial, c.increment)}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className='card' style={{ marginBottom: '1.2rem' }}>
         <h2>Urkunden-Vorlage</h2>
         <p className='muted'>Diese Werte sind die Voreinstellung im Urkunden-Editor. Den Namen der Schüler trägst du weiterhin nur im Browser ein.</p>
 
@@ -109,7 +142,7 @@ export default function ExtrasForm({ initial }: { initial: Extras }) {
 
       <div className='card' style={{ marginBottom: '1.2rem' }}>
         <button className='btn' style={{ width: 'auto', marginTop: 0, padding: '0.8rem 1.8rem' }} disabled={busy} onClick={() => void save()}>
-          Medaillen und Urkunde speichern
+          Medaillen, Live-Partien und Urkunde speichern
         </button>
         {msg && <p className={msg.ok ? 'info' : 'error'}>{msg.text}</p>}
       </div>

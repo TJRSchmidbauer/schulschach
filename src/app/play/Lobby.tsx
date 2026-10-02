@@ -22,10 +22,12 @@ const field: React.CSSProperties = {
   background: '#fdfbf7',
 };
 
-export default function Lobby() {
+type Props = { controls: string[]; defaultControl: string; retentionDays: number };
+
+export default function Lobby({ controls, defaultControl, retentionDays }: Props) {
   const router = useRouter();
   const [data, setData] = useState<LobbyData | null>(null);
-  const [control, setControl] = useState('10+0');
+  const [control, setControl] = useState(defaultControl);
   const [color, setColor] = useState('random');
   const [message, setMessage] = useState<string | null>(null);
   const loaded = useRef(false);
@@ -111,7 +113,7 @@ export default function Lobby() {
             <div>
               <label htmlFor='ctl'>Bedenkzeit</label>
               <select id='ctl' value={control} onChange={(e) => setControl(e.target.value)} style={field}>
-                {CONTROLS.map((c) => (
+                {CONTROLS.filter((c) => controls.includes(c.id)).map((c) => (
                   <option key={c.id} value={c.id}>{c.id.replace('+', ' Min + ')} Sek</option>
                 ))}
               </select>
@@ -173,7 +175,7 @@ export default function Lobby() {
             </li>
           ))}
         </ul>
-        <p className='muted' style={{ marginBottom: 0 }}>Beendete Partien bleiben 90 Tage gespeichert.</p>
+        <p className='muted' style={{ marginBottom: 0 }}>Beendete Partien bleiben {retentionDays} Tage gespeichert.</p>
       </div>
     </div>
   );

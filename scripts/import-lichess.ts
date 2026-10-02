@@ -1,11 +1,17 @@
 import readline from 'node:readline';
 import { PrismaClient } from '@prisma/client';
 import { isMetaTheme, themeLabel } from '../src/lib/themes';
+import { pathThemes } from '../src/lib/paths-config';
 
 function arg(name: string, fallback: number): number {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
   const n = hit ? Number(hit.split('=')[1]) : NaN;
   return Number.isFinite(n) ? n : fallback;
+}
+
+function strArg(name: string): string | null {
+  const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
+  return hit ? hit.slice(name.length + 3) : null;
 }
 
 const MAX = arg('max', 5000);
@@ -14,6 +20,12 @@ const MAX_RATING = arg('max-rating', 1600);
 const MIN_POPULARITY = arg('min-popularity', 90);
 const MIN_PLAYS = arg('min-plays', 500);
 const PER_THEME = arg('per-theme', 250);
+
+const themesArg = strArg('themes');
+const WANTED: Set<string> | null =
+  themesArg === null
+    ? null
+    : new Set(themesArg === 'paths' ? pathThemes() : themesArg.split(',').map((s) => s.trim()).filter(Boolean));
 
 const db = new PrismaClient();
 const counts = new Map<string, number>();
@@ -38,7 +50,9 @@ async function flush(batch: NewPuzzle[]): Promise<number> {
 }
 
 async function main() {
-  console.log(`[import] Filter: Rating ${MIN_RATING}-${MAX_RATING}, Beliebtheit >= ${MIN_POPULARITY}, Spielzahl >= ${MIN_PLAYS}, max ${MAX}, je Thema höchstens ${PER_THEME}`);
+  console.log(
+    `[import] Filter: Rating ${MIN_RATING}-${MAX_RATING}, Beliebtheit >= ${MIN_POPULARITY}, Spielzahl >= ${MIN_PLAYS}, max ${MAX}, je Thema höchstens ${PER_THEME}, Themen: ${WANTED ? Array.from(WANTED).length + ' ausgewählte' : 'alle'}`,
+  );
   const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
   let header = true;
   let seen = 0;
@@ -69,9 +83,10 @@ async function main() {
     if (popularity < MIN_POPULARITY || plays < MIN_PLAYS) continue;
     if (moves.split(' ').length < 2) continue;
 
-    const useful = themes.filter((t) => (counts.get(t) ?? 0) < PER_THEME);
+    const pool = WANTED ? themes.filter((t) => WANTED.has(t)) : themes;
+    const useful = pool.filter((t) => (counts.get(t) ?? 0) < PER_THEME);
     if (useful.length === 0) continue;
-    for (const t of themes) counts.set(t, (counts.get(t) ?? 0) + 1);
+    for (const t of pool) counts.set(t, (counts.get(t) ?? 0) + 1);
 
     const topical = themes.filter((t) => !isMetaTheme(t));
     const main = topical[0] ?? themes[0];
@@ -96,6 +111,10 @@ async function main() {
       batch = [];
     }
     if (taken >= MAX) break;
+    if (WANTED && Array.from(WANTED).every((t) => (counts.get(t) ?? 0) >= PER_THEME)) {
+      console.log('[import] Alle gewünschten Themen sind gefüllt.');
+      break;
+    }
   }
 
   inserted += await flush(batch);

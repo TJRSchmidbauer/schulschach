@@ -4,10 +4,15 @@ const items = [
   { key: 'students', href: '/trainer/dashboard', label: 'Schüler' },
   { key: 'puzzles', href: '/trainer/puzzles', label: 'Übungen' },
   { key: 'assignments', href: '/trainer/assignments', label: 'Hausaufgaben' },
+  { key: 'stats', href: '/trainer/stats', label: 'Statistik' },
   { key: 'certificates', href: '/trainer/certificates', label: 'Urkunden' },
 ] as const;
 
-export default function TrainerNav({ active }: { active: 'students' | 'puzzles' | 'assignments' | 'certificates' }) {
+export default function TrainerNav({
+  active,
+}: {
+  active: 'students' | 'puzzles' | 'assignments' | 'stats' | 'certificates';
+}) {
   return (
     <nav style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.2rem', flexWrap: 'wrap' }}>
       {items.map((i) => (

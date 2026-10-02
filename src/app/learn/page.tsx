@@ -15,7 +15,11 @@ export default async function LearnPage() {
     where: { active: true },
     orderBy: { sortOrder: 'asc' },
     include: {
-      modules: { orderBy: { sortOrder: 'asc' }, include: { modulePuzzles: { include: { puzzle: true } } } },
+      modules: {
+        where: { active: true },
+        orderBy: { sortOrder: 'asc' },
+        include: { modulePuzzles: { include: { puzzle: true } } },
+      },
     },
   });
   const attempts = await db.attempt.findMany({ where: { userId: session.userId } });

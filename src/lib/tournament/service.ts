@@ -1,9 +1,11 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { getSettings } from '@/lib/settings';
 import { swissPairings } from './pairing';
 import { standings } from './scoring';
 import type { PairingInput, PlayerInputFull, TResult } from './types';
 
+// Standardwert; die tatsächliche Frist steht in den Einstellungen (Trainer-Bereich).
 export const RETENTION_DAYS = 90;
 let lastCleanup = 0;
 
@@ -27,8 +29,9 @@ export async function housekeeping() {
   const now = Date.now();
   if (now - lastCleanup < 60 * 60 * 1000) return;
   lastCleanup = now;
+  const days = (await getSettings()).retention.tournaments;
   await db.tournament.deleteMany({
-    where: { status: 'FINISHED', finishedAt: { lt: new Date(now - RETENTION_DAYS * 86400000) } },
+    where: { status: 'FINISHED', finishedAt: { lt: new Date(now - days * 86400000) } },
   });
 }
 

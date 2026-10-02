@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { getSettings } from '@/lib/settings';
 import { publish } from './bus';
 import { STANDARD_FEN, controlLabel, findControl, type Color, type GameSummary, type GameView } from './types';
 
@@ -23,6 +24,7 @@ export function isFail(x: unknown): x is Fail {
 const MINUTE = 60 * 1000;
 const STALE_WAITING_MS = 30 * MINUTE;
 const STALE_PRESTART_MS = 10 * MINUTE;
+// Standardwert; die tatsächliche Frist steht in den Einstellungen (Trainer-Bereich).
 export const RETENTION_DAYS = 90;
 let lastCleanup = 0;
 
@@ -159,7 +161,8 @@ export async function housekeeping(): Promise<void> {
   const now = Date.now();
   if (now - lastCleanup < 60 * MINUTE) return;
   lastCleanup = now;
-  const border = new Date(now - RETENTION_DAYS * 24 * 60 * MINUTE);
+  const days = (await getSettings()).retention.games;
+  const border = new Date(now - days * 24 * 60 * MINUTE);
   await db.game.deleteMany({ where: { status: 'FINISHED', finishedAt: { lt: border } } });
 }
 

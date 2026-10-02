@@ -7,12 +7,20 @@
 - **Name links oben:** 2 bis 40 Zeichen. Das letzte Wort wird farbig hervorgehoben (zum Beispiel „SchulSchach **AG**“). Der Name steht auch im Titel des Browser-Tabs.
 - **Untertitel:** Optional, erscheint rechts oben (zum Beispiel der Schulname).
 - **Farbschema:** Holz und Grün (Standard), Ozean, Beere, Sonne, Kirsche, Schiefer. Die Auswahl zeigt sofort eine Vorschau und wird erst mit „Einstellungen speichern“ übernommen. Alle Schemata sind hell und erreichen für Text mindestens 4,5:1 Kontrast (WCAG 2.2, Kriterium 1.4.3).
+- **Brettfarben:** Klassisch (Holz), Grün, Blau, Lila, Grau, Hoher Kontrast. Sie gelten für alle Schachbretter. Im Live-Brett werden sie direkt gesetzt, bei den übrigen Brettern über Stylesheet-Regeln für die Felder (`data-square`). Der letzte Zug im Live-Brett wird mit einem gelben Schatten markiert, damit er auf jedem Brett sichtbar bleibt.
+- **Begrüßungstext:** Markdown, höchstens 2000 Zeichen. Er erscheint auf der Anmeldeseite und auf der Lernseite der Schüler. Ein leeres Feld zeigt nichts an.
 
-Hinweis: Einige Bereiche haben ihre Farben noch fest im Code (Turnierverwaltung, Beamer-Ansicht, Live-Brett, Übungsbrett). Dort bleibt zum Beispiel das Grün der gewählten Knöpfe auch in anderen Schemata. Das wird schrittweise angepasst.
+Hinweis: Einige Bereiche haben ihre Farben noch fest im Code (Turnierverwaltung, Beamer-Ansicht, Übungsbrett-Knöpfe). Dort bleibt zum Beispiel das Grün der gewählten Knöpfe auch in anderen Schemata. Das wird schrittweise angepasst.
 
 ## Funktionen ein- und ausschalten
 
 Freies Üben, Live-Partien, Turniere und Medaillen lassen sich einzeln ausschalten. Links dorthin verschwinden, und beim direkten Aufruf erscheint ein Hinweis (Trainer sehen einen Link zu den Einstellungen). Wichtig: Das blendet die Oberfläche aus. Die Schnittstellen im Hintergrund bleiben aktiv.
+
+## Aufbewahrung
+
+Beendete Live-Partien und beendete Turniere werden nach einer einstellbaren Zeit automatisch gelöscht (7 bis 365 Tage, Standard 90). Die beiden Fristen sind getrennt einstellbar. Die Bereinigung läuft höchstens einmal pro Stunde, wenn die Lobby, die Turnierliste oder eine Turnierseite aufgerufen wird. Bereits erstellte Datensicherungen enthalten gelöschte Daten bis zu ihrem eigenen Ablauf weiter, siehe [datensicherung.md](datensicherung.md). Laufende Turniere und Entwürfe werden nie automatisch gelöscht.
+
+Wo in anderen Dokumenten noch „90 Tage“ steht, ist der Standardwert gemeint.
 
 ## Impressum und Datenschutz
 
@@ -30,9 +38,10 @@ Unterstützte Markdown-Elemente:
 
 Roh-HTML wird nicht ausgeführt, sondern als Text angezeigt.
 
-## CSV-Import
+## CSV-Import und Alias-Generator
 
 - **Schüler:** Einstellungen → „Zum CSV-Import“ (`/trainer/import`). Eine Text- oder CSV-Datei mit einem Alias pro Zeile (erste Spalte) oder allen Aliassen in einer Zeile, getrennt durch Semikolon, Komma oder Tab. Eine Kopfzeile wie „Alias“ wird übersprungen. Du siehst eine Vorschau, danach werden die Konten angelegt (höchstens 150 auf einmal). Aliasse, die es schon gibt (Groß- und Kleinschreibung zählt nicht), werden übersprungen. Die erzeugten Codes erscheinen als Tabelle und lassen sich als CSV speichern (`Alias;Code`). Du findest sie später auch in der Schülertabelle.
+- **Alias-Generator:** Auf derselben Seite erzeugt „Namen erzeugen“ bis zu 60 Spitznamen auf einmal, wahlweise als Schachfigur und Zahl (Springer-17), Tier und Zahl (Fuchs-42) oder Figur, Tier und Zahl (Springer-Fuchs-07). Die Namen landen in der Liste und lassen sich vor dem Anlegen bearbeiten. Doppelte Namen innerhalb der Liste werden vermieden. Ob ein Name schon in der Datenbank existiert, prüft erst das Anlegen.
 - **Turnier-Teilnehmer:** Beim Anlegen eines Turniers gibt es unter den Gast-Aliassen einen Datei-Knopf. Die Namen werden zu den Gast-Aliassen hinzugefügt.
 
 Verwende nur Spitznamen und keine Klarnamen. Importierte Dateien werden nicht gespeichert, sie werden im Browser gelesen.

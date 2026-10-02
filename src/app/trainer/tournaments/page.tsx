@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { getSettings } from '@/lib/settings';
 import { housekeeping } from '@/lib/tournament/service';
 import TrainerNav from '@/app/trainer/TrainerNav';
 import NewTournament from './NewTournament';
@@ -13,6 +14,7 @@ export default async function TournamentsPage() {
   const session = await getSession();
   if (!session || session.role !== 'TRAINER') redirect('/trainer');
   await housekeeping();
+  const settings = await getSettings();
 
   const students = await db.user.findMany({
     where: { role: 'STUDENT', active: true },
@@ -52,7 +54,7 @@ export default async function TournamentsPage() {
             </li>
           ))}
         </ul>
-        <p className='muted' style={{ marginBottom: 0 }}>Beendete Turniere werden nach 90 Tagen automatisch gelöscht. Mit „Löschen“ kannst du jedes Turnier sofort entfernen.</p>
+        <p className='muted' style={{ marginBottom: 0 }}>Beendete Turniere werden nach {settings.retention.tournaments} Tagen automatisch gelöscht (einstellbar unter ⚙️ Einstellungen). Mit „Löschen“ kannst du jedes Turnier sofort entfernen.</p>
       </div>
 
       <NewTournament students={students.map((s) => s.alias)} />

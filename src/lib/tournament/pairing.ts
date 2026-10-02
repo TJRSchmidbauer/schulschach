@@ -1,24 +1,36 @@
-import { pair } from '@echecs/swiss/dutch';
-import type { Game, Player } from '@echecs/swiss';
+import { pair as rawPair } from '@echecs/swiss/dutch';
 import { standings } from './scoring';
 import type { PairingInput, PlayerInputFull, ProposedPairing, Standing } from './types';
 
 // Hauptverfahren: FIDE-Holländisches System (C.04.3) über die Bibliothek @echecs/swiss (MIT).
-// Rangfolge der Startnummern: Startrangliste, über eine künstliche Zahl als Rating abgebildet.
-function toGames(historyPairs: PairingInput[]): Game[][] {
+// Die Bibliothek wird bewusst locker typisiert angesprochen und ihr Ergebnis wird geprüft.
+// Weicht etwas ab, greift der Rückfall weiter unten.
+type LibGame = {
+  white: string;
+  black: string;
+  result: 'white' | 'black' | 'draw' | 'none';
+  kind?: string;
+};
+type LibResult = {
+  pairings: { white: string; black: string }[];
+  byes?: ({ player: string } | string)[];
+};
+const pair = rawPair as unknown as (players: { id: string; rating: number }[], games: LibGame[][]) => LibResult;
+
+function toGames(historyPairs: PairingInput[]): LibGame[][] {
   const rounds = historyPairs.reduce((max, p) => Math.max(max, p.round), 0);
-  const games: Game[][] = [];
+  const games: LibGame[][] = [];
   for (let r = 1; r <= rounds; r++) {
-    const list: Game[] = [];
+    const list: LibGame[] = [];
     for (const p of historyPairs) {
       if (p.round !== r) continue;
       if (p.blackId === null) {
-        list.push({ white: p.whiteId, black: '', result: 1, kind: 'pairing-bye' });
+        list.push({ white: p.whiteId, black: '', result: 'white', kind: 'pairing-bye' });
         continue;
       }
-      if (p.result === 'WHITE_WIN') list.push({ white: p.whiteId, black: p.blackId, result: 1 });
-      else if (p.result === 'BLACK_WIN') list.push({ white: p.whiteId, black: p.blackId, result: 0 });
-      else if (p.result === 'DRAW') list.push({ white: p.whiteId, black: p.blackId, result: 0.5 });
+      if (p.result === 'WHITE_WIN') list.push({ white: p.whiteId, black: p.blackId, result: 'white' });
+      else if (p.result === 'BLACK_WIN') list.push({ white: p.whiteId, black: p.blackId, result: 'black' });
+      else if (p.result === 'DRAW') list.push({ white: p.whiteId, black: p.blackId, result: 'draw' });
     }
     games.push(list);
   }
@@ -26,12 +38,29 @@ function toGames(historyPairs: PairingInput[]): Game[][] {
 }
 
 function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): ProposedPairing[] {
-  const libPlayers: Player[] = players.map((p) => ({ id: p.id, rating: 100000 - p.startRank }));
+  const libPlayers = players.map((p) => ({ id: p.id, rating: 100000 - p.startRank }));
   const result = pair(libPlayers, toGames(historyPairs));
-  const out: ProposedPairing[] = result.pairings.map((p) => ({ whiteId: p.white, blackId: p.black, repeated: false }));
-  for (const b of result.byes) out.push({ whiteId: b.player, blackId: null, repeated: false, note: 'Freilos' });
-  const covered = result.pairings.length * 2 + result.byes.length;
-  if (covered !== players.length) throw new Error('Die Auslosung ist unvollständig.');
+  const known = new Set(players.map((p) => p.id));
+  const history = playedSet(historyPairs);
+
+  const out: ProposedPairing[] = [];
+  for (const p of result.pairings) {
+    if (!known.has(p.white) || !known.has(p.black)) throw new Error('Unbekannter Spieler in der Auslosung.');
+    if (seen(p.white, p.black, history)) throw new Error('Wiederholungspaarung in der Auslosung.');
+    out.push({ whiteId: p.white, blackId: p.black, repeated: false });
+  }
+  for (const b of result.byes ?? []) {
+    const id = typeof b === 'string' ? b : b.player;
+    if (!known.has(id)) throw new Error('Unbekannter Spieler beim Freilos.');
+    out.push({ whiteId: id, blackId: null, repeated: false, note: 'Freilos' });
+  }
+
+  const used = new Set<string>();
+  for (const p of out) {
+    used.add(p.whiteId);
+    if (p.blackId) used.add(p.blackId);
+  }
+  if (used.size !== players.length) throw new Error('Die Auslosung ist unvollständig.');
   return out;
 }
 

@@ -55,11 +55,32 @@ model User {
   active            Boolean            @default(true)
   createdAt         DateTime           @default(now())
   lastLoginAt       DateTime?
+  groupId           String?
+  group             Group?             @relation(fields: [groupId], references: [id], onDelete: SetNull)
   sessions          Session[]
   attempts          Attempt[]
   assignmentTargets AssignmentTarget[]
   gamesWhite        Game[]             @relation("GameWhite")
   gamesBlack        Game[]             @relation("GameBlack")
+
+  @@index([groupId])
+}
+
+model Group {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  createdAt DateTime    @default(now())
+  users     User[]
+  paths     GroupPath[]
+}
+
+model GroupPath {
+  groupId String
+  pathId  String
+  group   Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  path    LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, pathId])
 }
 
 model Session {
@@ -75,13 +96,14 @@ model Session {
 }
 
 model LearningPath {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String      @id @default(cuid())
+  slug        String      @unique
   title       String
   description String
-  sortOrder   Int      @default(0)
-  active      Boolean  @default(true)
+  sortOrder   Int         @default(0)
+  active      Boolean     @default(true)
   modules     Module[]
+  groups      GroupPath[]
 }
 
 model Module {

@@ -25,6 +25,13 @@ export default async function SettingsPage() {
           Hier passt du die Seite für deine AG an: Name, Farben, Funktionen, Medaillen, Urkunden sowie Impressum und Datenschutz.
         </p>
       </div>
+      <div className='card' style={{ marginBottom: '1.2rem' }}>
+        <h2>Gruppen</h2>
+        <p className='muted'>Teile Schüler in Gruppen ein und lege fest, welche Lernpfade jede Gruppe sieht.</p>
+        <Link className='btn btn-secondary' style={{ width: 'auto', padding: '0.7rem 1.4rem' }} href='/trainer/groups'>
+          Zu den Gruppen
+        </Link>
+      </div>
       <SettingsForm initial={settings} />
       <ExtrasForm initial={extras} />
       <div className='card' style={{ marginTop: '1.2rem' }}>

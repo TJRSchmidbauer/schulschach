@@ -11,8 +11,15 @@ export default async function LearnPage() {
   const session = await getSession();
   if (!session || session.role !== 'STUDENT') redirect('/');
 
+  // Gruppen: Hat die Gruppe des Schülers Lernpfade zugeordnet, werden nur diese gezeigt, sonst alle.
+  const me = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { group: { select: { name: true, paths: { select: { pathId: true } } } } },
+  });
+  const groupPathIds = me?.group?.paths.map((p) => p.pathId) ?? [];
+
   const paths = await db.learningPath.findMany({
-    where: { active: true },
+    where: { active: true, ...(groupPathIds.length > 0 ? { id: { in: groupPathIds } } : {}) },
     orderBy: { sortOrder: 'asc' },
     include: {
       modules: {
@@ -40,6 +47,7 @@ export default async function LearnPage() {
     <div>
       <div className="card" style={{ marginBottom: '1.2rem' }}>
         <h1>Hallo, {session.user.alias}!</h1>
+        {me?.group && <p className="muted" style={{ margin: '0 0 0.4rem' }}>Gruppe: {me.group.name}</p>}
         <form action="/api/auth/logout" method="post">
           <button className="logout-link" type="submit">abmelden</button>
         </form>

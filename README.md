@@ -39,7 +39,7 @@
 - 🔎 Übungsdatenbank mit Filtern (Thema, Rating, Suche) und Brettvorschau
 - 📅 Hausaufgaben für alle oder ausgewählte Schüler, mit Fälligkeitsdatum
 - 👀 Live-Partien ansetzen (auch mit eigener Startstellung), live zusehen mit Engine-Analyse, Partien beenden
-- 🏆 Turniere im Schweizer System für echte Brettpartien (bis 100 Teilnehmer): Auslosung nach FIDE-Holländisch (C.04.3), Ergebnisse, Rangliste mit Buchholz-Wertungen, große Beamer-Ansicht 📽️
+- 🏆 Turniere im Schweizer System für echte Brettpartien (bis 100 Teilnehmer): Auslosung nach FIDE-Holländisch (C.04.3), Ergebnisse, Rangliste mit Buchholz-Wertungen, große Beamer-Ansicht 📽️, Abmelden einzelner Spieler für künftige Runden und Löschen von Turnieren
 - 📊 Statistik je Schüler und Thema inklusive Schwachstellen
 - 📜 Urkunden als SVG: Der echte Name wird nur im Browser eingetragen und nie an den Server gesendet
 
@@ -109,7 +109,7 @@ Schüler öffnen auf der Startseite die Spiel-Lobby und fordern sich heraus. Der
 
 ### 🏆 Turniere
 
-Trainer-Bereich → Turniere: Teilnehmer wählen, Gast-Aliasse eintragen, Runden auslosen, Ergebnisse eintragen, Rangliste ansehen und die große Beamer-Ansicht öffnen. Regeln, Rangfolge und Grenzen: [docs/turniere.md](docs/turniere.md).
+Trainer-Bereich → Turniere: Teilnehmer wählen, Gast-Aliasse eintragen, Runden auslosen, Ergebnisse eintragen, Spieler für künftige Runden abmelden, Rangliste ansehen, die große Beamer-Ansicht öffnen und Turniere (auch Probeturniere) mit „Löschen“ entfernen. Regeln, Rangfolge und Grenzen: [docs/turniere.md](docs/turniere.md).
 
 ### 🔄 Aktualisieren
 
@@ -117,13 +117,15 @@ In Portainer den Stack mit „Pull and redeploy“ neu bereitstellen. Datenbankd
 
 ### 💾 Backup
 
-Die Datenbank läuft als eigener Container (Dienst `db` in `compose.portainer.yml`). Beispiel für einen Dump (Benutzer, Datenbankname und Containername aus deiner Compose-Datei einsetzen):
+Der Stack enthält den Dienst `pgbackups` (Container `schulschach_pgbackups`). Er sichert die Datenbank jede Nacht und beim Start des Stacks und bewahrt 7 Tagesstände, 4 Wochenstände und 3 Monatsstände auf. Die Dateien liegen im Docker-Volume `schulschach_backups` (in Portainer unter Volumes, mit dem Namen deines Stacks als Präfix). Anleitung zum Kopieren auf einen zweiten Speicherort und zum Wiederherstellen: [docs/datensicherung.md](docs/datensicherung.md).
+
+Einen einzelnen Dump von Hand erzeugst du so:
 
 ```sh
-docker exec <db-container> pg_dump -U <db-user> <db-name> > schulschach-backup.sql
+docker exec schulschach_db pg_dump -U schulschach schulschach > schulschach-backup.sql
 ```
 
-Bewahre Backups verschlüsselt und zugriffsgeschützt auf. Sie enthalten Aliasse, Lernstand, Partien und Turniere.
+Bewahre Backups verschlüsselt und zugriffsgeschützt auf. Sie enthalten Aliasse, Lernstand, Partien und Turniere. Sichere `AUTH_SECRET` (und `CODE_ENC_KEY`, falls gesetzt) getrennt davon, sonst sind Schülercodes aus einer Sicherung nicht mehr lesbar.
 
 ## 💻 Lokale Entwicklung
 
@@ -141,7 +143,7 @@ Hinweis: Das Setzen des Session-Cookies erwartet HTTPS. Lokal ohne HTTPS kann di
 ## 🗂️ Projektstruktur
 
 ```
-compose.portainer.yml   Stack (App, Datenbank, Netze, Traefik-Labels)
+compose.portainer.yml   Stack (App, Datenbank, Datensicherung, Netze, Traefik-Labels)
 Dockerfile              Build der App
 docker/entrypoint.sh    Start: Datenbank anlegen, Seed, App starten
 prisma/                 Datenbankschema und Seed
@@ -149,7 +151,7 @@ scripts/                Trainer-Hash, Lichess-Import, Lernpfade bauen, Engine ko
 src/app/                Seiten und API (Schüler, Trainer, Übung, Medaillen, Statistik, Live-Partien, Turniere)
 src/lib/                Anmeldung, Verschlüsselung, Medaillen, Statistik, Themen, Lernpfade, Live-Logik, Turnier-Logik
 src/components/         Urkunden-Editor (SVG), Live-Brett und Analyse-Panel
-docs/                   Import-Anleitung, Live-Schach, Turniere, Quellen und Lizenzen
+docs/                   Import-Anleitung, Live-Schach, Turniere, Datensicherung, Quellen und Lizenzen
 ```
 
 ## 🔒 Datenschutz und Sicherheit
@@ -159,6 +161,7 @@ docs/                   Import-Anleitung, Live-Schach, Turniere, Quellen und Liz
 - 🗝️ Codes und Trainer-Code werden mit scrypt gehasht. Schülercodes liegen zusätzlich verschlüsselt (AES-256-GCM), damit der Trainer sie anzeigen kann. Sitzungen laufen über HttpOnly-, Secure- und SameSite-Cookies (12 Stunden).
 - 🛡️ Geschützte Container-Einstellungen: `no-new-privileges`, `cap_drop: ALL`, CPU- und RAM-Limits, Datenbank nur im internen Docker-Netz, TLS über Traefik.
 - 🗄️ Gespeichert werden Alias, Anmeldezeitpunkt, Lösungsversuche (Ergebnis, Tipps, Fehlversuche, Dauer, Zeitpunkt), Live-Partien (Alias, Züge, Ergebnis, Bedenkzeit) und Turniere (Alias, Paarungen, Ergebnisse). Beendete Partien und Turniere werden nach 90 Tagen automatisch gelöscht. Es gibt keinen Chat. Prüfe mit deiner Schule, ob dafür eine Einwilligung oder eine andere Rechtsgrundlage nötig ist, und ob Eltern informiert werden müssen.
+- 💾 Die automatischen Datensicherungen enthalten diese Daten bis zum Ablauf der Aufbewahrung (7 Tage, 4 Wochen, 3 Monate), auch wenn Inhalte inzwischen gelöscht wurden. Kürze die Fristen in `compose.portainer.yml`, wenn deine Schule das verlangt.
 - 📣 Sicherheitslücken bitte nicht öffentlich melden, sondern über eine private Nachricht an den Repository-Inhaber.
 
 ## 📖 Fachbegriffe kurz erklärt
@@ -194,6 +197,7 @@ Stand der Angaben: **2. Oktober 2026**. Alle Quellen wurden zum Zweck der Orient
 | 5 | Hlywa, J. und Mitwirkende (o. J.): *chess.js.* <https://github.com/jhlywa/chess.js>, abgerufen am 2. Oktober 2026. | Schachregeln und Zugprüfung | BSD-2-Clause |
 | 6 | Clariity und Mitwirkende (o. J.): *react-chessboard.* <https://github.com/Clariity/react-chessboard>, abgerufen am 2. Oktober 2026. | Darstellung des Schachbretts | MIT |
 | 7 | Vercel, Inc. (o. J.): *Next.js.* <https://nextjs.org>; Prisma Data, Inc. (o. J.): *Prisma.* <https://www.prisma.io>; The PostgreSQL Global Development Group (o. J.): *PostgreSQL.* <https://www.postgresql.org> | Web-Framework, Datenbankzugriff, Datenbank | MIT, Apache-2.0, PostgreSQL License |
+| 7a | prodrigestivill (o. J.): *docker-postgres-backup-local.* <https://github.com/prodrigestivill/docker-postgres-backup-local>, abgerufen am 2. Oktober 2026. | Automatische Datenbanksicherung (eigener Container im Stack) | Lizenz bitte auf der Projektseite prüfen |
 
 ### 📏 Regelwerke als fachliche Orientierung
 

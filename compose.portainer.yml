@@ -83,5 +83,36 @@ services:
       retries: 10
       start_period: 20s
 
+  pgbackups:
+    image: prodrigestivill/postgres-backup-local:16
+    container_name: schulschach_pgbackups
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: schulschach
+      POSTGRES_USER: schulschach
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SCHEDULE: '@daily'
+      BACKUP_ON_START: 'TRUE'
+      BACKUP_KEEP_DAYS: '7'
+      BACKUP_KEEP_WEEKS: '4'
+      BACKUP_KEEP_MONTHS: '3'
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 50
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+    volumes:
+      - schulschach_backups:/backups
+    networks:
+      - schulschach_internal
+
 volumes:
   schulschach_postgres:
+  schulschach_backups:

@@ -1,68 +1,58 @@
 # Datensicherung
 
-Alle Daten der AG liegen in der PostgreSQL-Datenbank (Dienst `db`): Schüler-Aliasse, Lernstand, Hausaufgaben, Live-Partien und Turniere. Diese Datenbank gehört regelmäßig gesichert, und zwar automatisch, damit es nicht vom Gedächtnis abhängt.
+Alle Daten der AG liegen in der PostgreSQL-Datenbank (Dienst `db`, Container `schulschach_db`): Schüler-Aliasse, Lernstand, Hausaufgaben, Live-Partien und Turniere. Ein eigener Dienst im Stack sichert sie automatisch.
 
-## Was gesichert werden muss
+## So funktioniert die automatische Sicherung
 
-1. **Die Datenbank** `schulschach` (siehe unten).
-2. **Die Einstellungen des Stacks** aus Portainer (Umgebungsvariablen, insbesondere der Schlüssel, mit dem die Schülercodes verschlüsselt sind, und der Trainer-Hash; siehe `.env.example`). Ohne diesen Schlüssel sind Codes aus einer Sicherung nicht lesbar. Bewahre sie getrennt von den Datenbank-Sicherungen auf, zum Beispiel in einem Passwortmanager.
+In `compose.portainer.yml` läuft der Dienst `pgbackups` (Container `schulschach_pgbackups`, Image `prodrigestivill/postgres-backup-local:16`). Er legt
 
-## Variante A: Sicherungs-Container im Stack (empfohlen)
+- jede Nacht (und beim Start des Stacks) eine Sicherung an,
+- hebt 7 Tagesstände, 4 Wochenstände und 3 Monatsstände auf und löscht ältere selbst.
 
-Ein zusätzlicher Dienst sichert die Datenbank nach Zeitplan und löscht alte Sicherungen selbst. Füge in `compose.portainer.yml` unter `services:` hinzu und passe die Werte an. Benutzer, Passwort und Datenbankname müssen zu deinem Dienst `db` passen, und die Hauptversion des Images muss zur Version deines Datenbank-Images passen.
+Die Dateien liegen im Docker-Volume `schulschach_backups` (in Portainer unter Volumes; der Stackname steht davor). Im Container sind sie unter `/backups` in den Ordnern `last`, `daily`, `weekly` und `monthly` zu finden und enden auf `.sql.gz`. Die Fristen änderst du in der Compose-Datei (`BACKUP_KEEP_DAYS`, `BACKUP_KEEP_WEEKS`, `BACKUP_KEEP_MONTHS`). Prüfe nach dem ersten Deploy in Portainer, dass der Container läuft und im Log eine Sicherung gemeldet wird. Die Lizenz des Images steht auf der Projektseite <https://github.com/prodrigestivill/docker-postgres-backup-local>.
 
-```yaml
-  pgbackups:
-    image: prodrigestivill/postgres-backup-local:<Postgres-Hauptversion>
-    restart: unless-stopped
-    user: postgres:postgres
-    depends_on:
-      - db
-    environment:
-      POSTGRES_HOST: db
-      POSTGRES_DB: schulschach
-      POSTGRES_USER: <DB-Benutzer>
-      POSTGRES_PASSWORD: <DB-Passwort>
-      SCHEDULE: "@daily"
-      BACKUP_ON_START: "TRUE"
-      BACKUP_KEEP_DAYS: 7
-      BACKUP_KEEP_WEEKS: 4
-      BACKUP_KEEP_MONTHS: 3
-    volumes:
-      - /srv/schulschach-backups:/backups
-```
+## Was außerdem gesichert werden muss
 
-Vorher auf dem Server den Ordner anlegen und Rechte vergeben: `mkdir -p /srv/schulschach-backups && chown -R 999:999 /srv/schulschach-backups`. Der Dienst legt Tages-, Wochen- und Monatsstände an und löscht ältere. Wenn dein Stack Netzwerke einzeln benennt, muss der Dienst im selben internen Netz wie `db` hängen.
-
-## Variante B: Cron auf dem Server
-
-Wer keinen zusätzlichen Container möchte, legt auf dem Server einen Cron-Eintrag an (`crontab -e`):
-
-```
-0 3 * * * docker exec <db-container> pg_dump -U <db-user> -Fc <db-name> > /srv/schulschach-backups/schulschach-$(date +\%F).dump && find /srv/schulschach-backups -name '*.dump' -mtime +14 -delete
-```
-
-Das sichert jede Nacht um 3 Uhr und löscht Dateien, die älter als 14 Tage sind.
+Die **Stack-Variablen** aus Portainer, vor allem `AUTH_SECRET` (und `CODE_ENC_KEY`, falls gesetzt). Ohne diesen Schlüssel sind die verschlüsselten Schülercodes aus einer Sicherung nicht lesbar. Bewahre sie getrennt von den Datenbank-Sicherungen auf, zum Beispiel in einem Passwortmanager. Auch `POSTGRES_PASSWORD` und `TRAINER_CODE_HASH` gehören dazu.
 
 ## Zweiter Speicherort
 
-Liegt die Sicherung nur auf demselben Server wie die Datenbank, geht bei einem Festplattenschaden beides verloren. Kopiere den Ordner deshalb zusätzlich regelmäßig auf ein anderes Gerät oder in einen Speicher außerhalb des Servers (zum Beispiel mit `rsync` oder `rclone`). Verschlüssele die Kopie, wenn sie den Server verlässt.
+Das Volume liegt auf demselben Server wie die Datenbank. Bei einem Festplattenschaden geht beides verloren. Kopiere die Sicherungen deshalb regelmäßig auf ein anderes Gerät oder in einen Speicher außerhalb des Servers:
+
+```sh
+docker cp schulschach_pgbackups:/backups ./schulschach-backups-kopie
+```
+
+Das kopiert den ganzen Sicherungsordner in das aktuelle Verzeichnis. Diese Kopie kannst du dann mit `rsync` oder `rclone` verschieben (und per Cron automatisieren). Verschlüssele sie, wenn sie den Server verlässt.
 
 ## Wiederherstellen
 
 Teste das einmal in Ruhe, bevor du es brauchst. Eine Sicherung zählt erst, wenn sie sich zurückspielen lässt.
 
-1. App stoppen (Container `schulschach_app` in Portainer anhalten), damit nichts in die Datenbank schreibt.
-2. Bei Sicherungen aus Variante A (Dateien enden auf `.sql.gz`):
-   `gunzip -c <datei>.sql.gz | docker exec -i <db-container> psql -U <db-user> -d <db-name>`
-3. Bei Sicherungen aus Variante B (Dateien enden auf `.dump`):
-   `docker exec -i <db-container> pg_restore -U <db-user> -d <db-name> --clean --if-exists < <datei>.dump`
-4. App wieder starten und prüfen, ob Schüler, Turniere und Partien da sind.
+### Erst testen, ohne etwas zu gefährden
 
-Am sichersten übst du die Wiederherstellung zuerst in einer leeren Test-Datenbank.
+```sh
+docker exec schulschach_db createdb -U schulschach restoretest
+docker exec schulschach_pgbackups cat /backups/last/schulschach-latest.sql.gz | gunzip -c | docker exec -i schulschach_db psql -U schulschach -d restoretest
+docker exec schulschach_db psql -U schulschach -d restoretest -c "SELECT count(*) FROM \"Tournament\";"
+docker exec schulschach_db dropdb -U schulschach restoretest
+```
+
+Die Zahl im dritten Befehl sollte zu den Turnieren passen, die du in der Anwendung siehst. Meldet `ls /backups/last` im Container (`docker exec schulschach_pgbackups ls /backups/last`) einen anderen Dateinamen, setze ihn ein. Ein paar Hinweise zu bereits vorhandenen Einträgen sind beim Wiederherstellen normal.
+
+### Echte Wiederherstellung
+
+1. App anhalten: `docker stop schulschach_app` (oder in Portainer den Container stoppen), damit nichts in die Datenbank schreibt.
+2. Aktuelle Daten verwerfen: `docker exec schulschach_db psql -U schulschach -d schulschach -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`
+3. Sicherung einspielen (Datei nach Bedarf aus `daily`, `weekly` oder `monthly` wählen):
+   `docker exec schulschach_pgbackups cat /backups/last/schulschach-latest.sql.gz | gunzip -c | docker exec -i schulschach_db psql -U schulschach -d schulschach`
+4. App wieder starten: `docker start schulschach_app`. Sie legt fehlende Tabellen beim Start selbst an.
+5. Prüfen, ob Schüler, Turniere und Partien da sind.
+
+Wenn du die Sicherung auf einen neuen Server zurückspielst, muss `AUTH_SECRET` derselbe Wert sein wie vorher.
 
 ## Datenschutz bei Sicherungen
 
-- Sicherungen enthalten Aliasse, Lernstände, Partien und Turniere. Lege sie zugriffsgeschützt ab.
-- Löschfristen der Anwendung (beendete Partien und Turniere nach 90 Tagen, manuell gelöschte Turniere) gelten nicht rückwirkend für bestehende Sicherungen. Halte die Aufbewahrung deshalb kurz. Die Voreinstellung oben bewahrt Tagesstände 7 Tage, Wochenstände 4 Wochen und Monatsstände 3 Monate auf. Kürze das, wenn deine Schule das verlangt.
+- Sicherungen enthalten Aliasse, Lernstände, Partien und Turniere. Sie liegen nur im Docker-Volume und nicht im Internet. Lege Kopien zugriffsgeschützt ab.
+- Löschfristen der Anwendung (beendete Partien und Turniere nach 90 Tagen, manuell gelöschte Turniere) gelten nicht rückwirkend für bestehende Sicherungen. Die Voreinstellung bewahrt Tagesstände 7 Tage, Wochenstände 4 Wochen und Monatsstände 3 Monate auf. Kürze das, wenn deine Schule das verlangt.
 - Wird ein Schüler auf eigenen Wunsch aus der Plattform gelöscht, steht er bis zum Ablauf der Sicherungen noch dort. Das ist bei der Information an Eltern und Schule zu nennen.

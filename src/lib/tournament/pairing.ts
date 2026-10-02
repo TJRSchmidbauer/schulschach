@@ -1,21 +1,17 @@
-import { pair as rawPair } from '@echecs/swiss/dutch';
+import { pair as rawPair } from '@echecs/swiss';
 import { standings } from './scoring';
 import type { PairingInput, PlayerInputFull, ProposedPairing, Standing } from './types';
 
 // Hauptverfahren: FIDE-Holländisches System (C.04.3) über die Bibliothek @echecs/swiss (MIT).
 // Die Bibliothek wird bewusst locker typisiert angesprochen und ihr Ergebnis wird geprüft.
-// Weicht etwas ab, greift der Rückfall weiter unten.
+// Weicht etwas ab, greift der Rückfall weiter unten und die tatsächliche Form kommt ins Log.
 type LibGame = {
   white: string;
   black: string;
   result: 'white' | 'black' | 'draw' | 'none';
   kind?: string;
 };
-type LibResult = {
-  pairings: { white: string; black: string }[];
-  byes?: ({ player: string } | string)[];
-};
-const pair = rawPair as unknown as (players: { id: string; rating: number }[], games: LibGame[][]) => LibResult;
+const pair = rawPair as unknown as (players: { id: string; rating: number }[], games: LibGame[][]) => unknown;
 
 function toGames(historyPairs: PairingInput[]): LibGame[][] {
   const rounds = historyPairs.reduce((max, p) => Math.max(max, p.round), 0);
@@ -37,21 +33,49 @@ function toGames(historyPairs: PairingInput[]): LibGame[][] {
   return games;
 }
 
+function asList<T>(x: unknown): T[] {
+  if (Array.isArray(x)) return x as T[];
+  if (x && typeof x === 'object' && typeof (x as Iterable<T>)[Symbol.iterator] === 'function') {
+    return Array.from(x as Iterable<T>);
+  }
+  return [];
+}
+
+function describe(x: unknown): string {
+  try {
+    const text = JSON.stringify(x);
+    return (text ?? String(x)).slice(0, 400);
+  } catch {
+    return String(x);
+  }
+}
+
 function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): ProposedPairing[] {
   const libPlayers = players.map((p) => ({ id: p.id, rating: 100000 - p.startRank }));
-  const result = pair(libPlayers, toGames(historyPairs));
+  const raw = pair(libPlayers, toGames(historyPairs));
+  if (raw && typeof (raw as { then?: unknown }).then === 'function') {
+    throw new Error('Die Bibliothek liefert ein Promise statt eines Ergebnisses.');
+  }
+  const result = (raw ?? {}) as { pairings?: unknown; byes?: unknown };
+  const pairings = asList<{ white: string; black: string }>(result.pairings);
+  const byes = asList<{ player?: string; id?: string } | string>(result.byes);
+  if (pairings.length === 0 && byes.length === 0) {
+    throw new Error('Unerwartete Ergebnisform: ' + describe(raw));
+  }
+
   const known = new Set(players.map((p) => p.id));
   const history = playedSet(historyPairs);
-
   const out: ProposedPairing[] = [];
-  for (const p of result.pairings) {
-    if (!known.has(p.white) || !known.has(p.black)) throw new Error('Unbekannter Spieler in der Auslosung.');
+  for (const p of pairings) {
+    if (!p || !known.has(p.white) || !known.has(p.black)) {
+      throw new Error('Unbekannter Spieler in der Auslosung: ' + describe(p));
+    }
     if (seen(p.white, p.black, history)) throw new Error('Wiederholungspaarung in der Auslosung.');
     out.push({ whiteId: p.white, blackId: p.black, repeated: false });
   }
-  for (const b of result.byes ?? []) {
-    const id = typeof b === 'string' ? b : b.player;
-    if (!known.has(id)) throw new Error('Unbekannter Spieler beim Freilos.');
+  for (const b of byes) {
+    const id = typeof b === 'string' ? b : (b.player ?? b.id ?? '');
+    if (!known.has(id)) throw new Error('Unbekannter Spieler beim Freilos: ' + describe(b));
     out.push({ whiteId: id, blackId: null, repeated: false, note: 'Freilos' });
   }
 
@@ -60,7 +84,9 @@ function fideDutch(players: PlayerInputFull[], historyPairs: PairingInput[]): Pr
     used.add(p.whiteId);
     if (p.blackId) used.add(p.blackId);
   }
-  if (used.size !== players.length) throw new Error('Die Auslosung ist unvollständig.');
+  if (used.size !== players.length) {
+    throw new Error('Die Auslosung ist unvollständig: ' + describe(raw));
+  }
   return out;
 }
 
@@ -167,7 +193,8 @@ export function swissPairings(players: PlayerInputFull[], historyPairs: PairingI
   try {
     return fideDutch(players, historyPairs);
   } catch (err) {
-    console.warn('[turnier] FIDE-Auslosung fehlgeschlagen, Notlösung wird benutzt:', err instanceof Error ? err.message : err);
+    const text = err instanceof Error ? `${err.message}\n${(err.stack ?? '').split('\n').slice(0, 4).join('\n')}` : String(err);
+    console.warn('[turnier] FIDE-Auslosung fehlgeschlagen, Notlösung wird benutzt: ' + text);
     return fallbackPairings(players, historyPairs, round);
   }
 }

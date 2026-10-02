@@ -263,3 +263,9 @@ model TournamentPairing {
   @@index([whiteId])
   @@index([blackId])
 }
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

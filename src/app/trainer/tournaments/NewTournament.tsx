@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { parseNameList } from '@/lib/csv';
 
 const field: React.CSSProperties = {
   textTransform: 'none',
@@ -38,6 +39,25 @@ export default function NewTournament({ students }: { students: string[] }) {
       if (next.has(alias)) next.delete(alias);
       else next.add(alias);
       return next;
+    });
+  }
+
+  async function onCsv(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.target;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.size > 500_000) {
+      setError('Die Datei ist zu groß (höchstens 500 KB).');
+      input.value = '';
+      return;
+    }
+    const imported = parseNameList(await file.text(), 100);
+    input.value = '';
+    setError(null);
+    setGuestText((prev) => {
+      const known = new Set(prev.split('\n').map((s) => s.trim().toLocaleLowerCase('de-DE')).filter(Boolean));
+      const added = imported.filter((name) => !known.has(name.toLocaleLowerCase('de-DE')));
+      return [...prev.split('\n').map((s) => s.trim()).filter(Boolean), ...added].join('\n');
     });
   }
 
@@ -83,6 +103,8 @@ export default function NewTournament({ students }: { students: string[] }) {
 
       <label htmlFor='tg'>Weitere Teilnehmer (Gast-Aliasse, ein Eintrag pro Zeile)</label>
       <textarea id='tg' value={guestText} onChange={(e) => setGuestText(e.target.value)} rows={6} style={field} placeholder={'Gast 1\nGast 2'} />
+      <label htmlFor='tcsv'>Oder Namen aus einer CSV- oder Textdatei hinzufügen</label>
+      <input id='tcsv' type='file' accept='.csv,.txt,text/csv,text/plain' onChange={(e) => void onCsv(e)} />
       <p className='muted'>
         Gast-Aliasse bleiben in diesem Browser, bis du „Turnier anlegen“ drückst. Danach liegen sie auf deinem Server, weil Runden und Ergebnisse gespeichert werden müssen. Bitte keine echten Namen eingeben.
       </p>

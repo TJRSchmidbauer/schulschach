@@ -25,6 +25,12 @@ enum AttemptSource {
   SELF
 }
 
+enum GameStatus {
+  WAITING
+  ACTIVE
+  FINISHED
+}
+
 model User {
   id                String             @id @default(cuid())
   alias             String             @unique
@@ -38,6 +44,8 @@ model User {
   sessions          Session[]
   attempts          Attempt[]
   assignmentTargets AssignmentTarget[]
+  gamesWhite        Game[]             @relation("GameWhite")
+  gamesBlack        Game[]             @relation("GameBlack")
 }
 
 model Session {
@@ -149,4 +157,33 @@ model Attempt {
 
   @@index([userId, createdAt])
   @@index([assignmentId])
+}
+
+model Game {
+  id               String     @id @default(cuid())
+  status           GameStatus @default(WAITING)
+  whiteId          String?
+  blackId          String?
+  createdByTrainer Boolean    @default(false)
+  startFen         String
+  fen              String
+  moves            String     @default("")
+  initialSeconds   Int
+  incrementSeconds Int
+  whiteMs          Int
+  blackMs          Int
+  lastMoveAt       DateTime?
+  drawOffer        String?
+  result           String?
+  reason           String?
+  createdAt        DateTime   @default(now())
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  white            User?      @relation("GameWhite", fields: [whiteId], references: [id], onDelete: SetNull)
+  black            User?      @relation("GameBlack", fields: [blackId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([finishedAt])
+  @@index([whiteId])
+  @@index([blackId])
 }

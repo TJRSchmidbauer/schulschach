@@ -84,7 +84,7 @@ export default async function LearnPage() {
 
       <div className="card" style={{ marginBottom: '1.2rem' }}>
         <h2>🏅 Meine Medaillen</h2>
-        <p className="muted">Sammle Medaillen für gelöste Aufgaben und drucke deine Urkunde aus.</p>
+        <p className="muted">Sammle Medaillen für gelöste Aufgaben und schau, wie weit du schon bist.</p>
         <Link className="btn" href="/awards">Medaillen ansehen</Link>
       </div>
 

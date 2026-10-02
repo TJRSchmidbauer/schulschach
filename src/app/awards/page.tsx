@@ -2,8 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { achievementText, computeStats, evaluateMedals } from '@/lib/medals';
-import CertificateEditor from '@/components/CertificateEditor';
+import { computeStats, evaluateMedals } from '@/lib/medals';
 
 const TIER_COLOR = { bronze: '#cd7f32', silver: '#9aa5b1', gold: '#d4a017' } as const;
 
@@ -46,7 +45,7 @@ export default async function AwardsPage() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '0.9rem', marginBottom: '1.6rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '0.9rem' }}>
         {medals.map((m) => (
           <div
             key={m.id}
@@ -67,12 +66,6 @@ export default async function AwardsPage() {
           </div>
         ))}
       </div>
-
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <h2 style={{ marginTop: 0 }}>Meine Urkunde</h2>
-        <p className="muted" style={{ marginBottom: 0 }}>Trage deinen Namen ein und drucke die Urkunde aus.</p>
-      </div>
-      <CertificateEditor achievementDefault={achievementText(stats.solved, earned.length)} />
     </div>
   );
 }

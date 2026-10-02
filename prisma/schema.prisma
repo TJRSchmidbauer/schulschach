@@ -75,6 +75,7 @@ model Module {
 
 model Puzzle {
   id                String             @id
+  origin            String             @default("own")
   fen               String
   solutionUci       String
   rating            Int
@@ -86,6 +87,8 @@ model Puzzle {
   modulePuzzles     ModulePuzzle[]
   assignmentPuzzles AssignmentPuzzle[]
   attempts          Attempt[]
+
+  @@index([rating])
 }
 
 model ModulePuzzle {

@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { themeLabel } from '@/lib/themes';
+import { startFen } from '@/lib/puzzle';
 import TrainerNav from '@/app/trainer/TrainerNav';
 import PuzzleAssignForm from './PuzzleAssignForm';
 
@@ -19,14 +20,23 @@ export default async function TrainerPuzzles({ searchParams }: { searchParams: P
   if (sp.theme) where.themes = { has: sp.theme };
   if (sp.q) where.title = { contains: sp.q, mode: 'insensitive' };
 
-  const puzzles = await db.puzzle.findMany({
+  const total = await db.puzzle.count({ where });
+  const found = await db.puzzle.findMany({
     where,
     orderBy: [{ rating: 'asc' }, { title: 'asc' }],
     take: 200,
-    select: { id: true, title: true, rating: true, themes: true, fen: true },
+    select: { id: true, title: true, rating: true, themes: true, fen: true, origin: true, solutionUci: true },
   });
-  const allThemeRows = await db.puzzle.findMany({ where: { published: true }, select: { themes: true } });
-  const allThemes = Array.from(new Set(allThemeRows.flatMap((p) => p.themes))).sort();
+  const puzzles = found.map((p) => ({
+    id: p.id,
+    title: p.title,
+    rating: p.rating,
+    themes: p.themes,
+    fen: startFen(p),
+  }));
+
+  const themeRows = await db.$queryRaw<{ theme: string }[]>`SELECT DISTINCT unnest(themes) AS theme FROM "Puzzle" WHERE published = true ORDER BY theme`;
+  const allThemes = themeRows.map((r) => r.theme);
   const students = await db.user.findMany({
     where: { role: 'STUDENT', active: true },
     orderBy: { alias: 'asc' },
@@ -47,7 +57,9 @@ export default async function TrainerPuzzles({ searchParams }: { searchParams: P
     <div>
       <div className="card" style={{ marginBottom: '1.2rem' }}>
         <h1>Übungen</h1>
-        <p className="muted">Filtern, Brett ansehen und als Hausaufgabe freischalten.</p>
+        <p className="muted">
+          {total} Aufgaben gefunden{total > 200 ? ' (die ersten 200 werden angezeigt – bitte weiter filtern)' : ''}. Filtern, Brett ansehen und als Hausaufgabe freischalten.
+        </p>
       </div>
       <TrainerNav active="puzzles" />
 

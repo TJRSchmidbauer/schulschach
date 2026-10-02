@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { themeLabel } from '@/lib/themes';
+import { isMetaTheme, themeLabel } from '@/lib/themes';
 
 type SearchParams = { theme?: string; level?: string };
 
@@ -14,9 +14,9 @@ export default async function FreePractice({ searchParams }: { searchParams: Pro
 
   const where: Prisma.PuzzleWhereInput = { published: true };
   if (sp.theme) where.themes = { has: sp.theme };
-  if (sp.level === 'easy') where.rating = { lte: 750 };
-  if (sp.level === 'mid') where.rating = { gte: 751, lte: 950 };
-  if (sp.level === 'hard') where.rating = { gte: 951 };
+  if (sp.level === 'easy') where.rating = { lte: 800 };
+  if (sp.level === 'mid') where.rating = { gte: 801, lte: 1100 };
+  if (sp.level === 'hard') where.rating = { gte: 1101 };
 
   const puzzles = await db.puzzle.findMany({
     where,
@@ -24,8 +24,8 @@ export default async function FreePractice({ searchParams }: { searchParams: Pro
     take: 60,
     select: { id: true, title: true, rating: true, themes: true },
   });
-  const themeRows = await db.puzzle.findMany({ where: { published: true }, select: { themes: true } });
-  const allThemes = Array.from(new Set(themeRows.flatMap((p) => p.themes))).sort();
+  const themeRows = await db.$queryRaw<{ theme: string }[]>`SELECT DISTINCT unnest(themes) AS theme FROM "Puzzle" WHERE published = true ORDER BY theme`;
+  const allThemes = themeRows.map((r) => r.theme).filter((t) => !isMetaTheme(t));
   const attempts = await db.attempt.findMany({ where: { userId: session.userId }, select: { puzzleId: true, result: true } });
   const solved = new Set(attempts.filter((a) => a.result !== 'ABANDONED').map((a) => a.puzzleId));
 
@@ -74,7 +74,7 @@ export default async function FreePractice({ searchParams }: { searchParams: Pro
             <li className="module-item" key={p.id}>
               <Link href={`/practice/${p.id}?s=1`}>{p.title}</Link>
               <span>
-                <span className="muted" style={{ marginRight: '0.6rem' }}>{p.themes.map(themeLabel).join(', ')}</span>
+                <span className="muted" style={{ marginRight: '0.6rem' }}>{p.themes.filter((t) => !isMetaTheme(t)).slice(0, 3).map(themeLabel).join(', ')}</span>
                 <span className={`badge ${solved.has(p.id) ? 'badge-done' : ''}`}>{solved.has(p.id) ? 'erledigt' : 'neu'}</span>
               </span>
             </li>

@@ -43,6 +43,22 @@ export function themeVars(id: string): Record<string, string> {
   return (THEMES.find((t) => t.id === id) ?? THEMES[0]).vars;
 }
 
+export type BoardThemeId = 'klassisch' | 'gruen' | 'blau' | 'lila' | 'grau' | 'kontrast';
+
+export const BOARD_THEMES: { id: BoardThemeId; label: string; light: string; dark: string }[] = [
+  { id: 'klassisch', label: 'Klassisch (Holz)', light: '#f0d9b5', dark: '#b58863' },
+  { id: 'gruen', label: 'Grün', light: '#eeeed2', dark: '#769656' },
+  { id: 'blau', label: 'Blau', light: '#dee3e6', dark: '#8ca2ad' },
+  { id: 'lila', label: 'Lila', light: '#f0e6f6', dark: '#9a7bb4' },
+  { id: 'grau', label: 'Grau', light: '#e6e6e6', dark: '#8c8c8c' },
+  { id: 'kontrast', label: 'Hoher Kontrast', light: '#ffffff', dark: '#5f6b73' },
+];
+
+export function boardVars(id: string): Record<string, string> {
+  const b = BOARD_THEMES.find((x) => x.id === id) ?? BOARD_THEMES[0];
+  return { '--board-light': b.light, '--board-dark': b.dark };
+}
+
 export type Features = { free: boolean; live: boolean; tournaments: boolean; medals: boolean };
 
 export const FEATURE_LIST: { key: keyof Features; label: string; hint: string }[] = [
@@ -56,7 +72,10 @@ export type Settings = {
   siteName: string;
   subtitle: string;
   theme: ThemeId;
+  boardTheme: BoardThemeId;
+  welcomeMd: string;
   features: Features;
+  retention: { games: number; tournaments: number };
   impressumMd: string;
   datenschutzMd: string;
 };
@@ -65,12 +84,15 @@ export const DEFAULT_SETTINGS: Settings = {
   siteName: 'SchulSchach AG',
   subtitle: '',
   theme: 'holz',
+  boardTheme: 'klassisch',
+  welcomeMd: '',
   features: { free: true, live: true, tournaments: true, medals: true },
+  retention: { games: 90, tournaments: 90 },
   impressumMd: '',
   datenschutzMd: '',
 };
 
-export const LIMITS = { siteName: 40, subtitle: 60, text: 20000 } as const;
+export const LIMITS = { siteName: 40, subtitle: 60, welcome: 2000, text: 20000, retentionMin: 7, retentionMax: 365 } as const;
 
 function cleanLine(v: unknown, max: number): string {
   if (typeof v !== 'string') return '';
@@ -82,6 +104,12 @@ function cleanText(v: unknown, max: number): string {
   return v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').slice(0, max);
 }
 
+function days(v: unknown, fallback: number): number {
+  const n = Math.floor(Number(v));
+  if (!Number.isFinite(n) || v === '' || v === null || v === undefined) return fallback;
+  return Math.min(LIMITS.retentionMax, Math.max(LIMITS.retentionMin, n));
+}
+
 export function sanitizeSettings(input: unknown): { ok: true; value: Settings } | { ok: false; error: string } {
   const o = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
   const siteName = cleanLine(o.siteName, LIMITS.siteName);
@@ -89,15 +117,23 @@ export function sanitizeSettings(input: unknown): { ok: true; value: Settings } 
   const subtitle = cleanLine(o.subtitle, LIMITS.subtitle);
   const theme = THEMES.find((t) => t.id === o.theme)?.id;
   if (!theme) return { ok: false, error: 'Dieses Farbschema gibt es nicht.' };
+  const boardTheme = BOARD_THEMES.find((b) => b.id === o.boardTheme)?.id ?? DEFAULT_SETTINGS.boardTheme;
   const f = (o.features && typeof o.features === 'object' ? o.features : {}) as Record<string, unknown>;
   const pick = (key: keyof Features) => (typeof f[key] === 'boolean' ? (f[key] as boolean) : DEFAULT_SETTINGS.features[key]);
+  const r = (o.retention && typeof o.retention === 'object' ? o.retention : {}) as Record<string, unknown>;
   return {
     ok: true,
     value: {
       siteName,
       subtitle,
       theme,
+      boardTheme,
+      welcomeMd: cleanText(o.welcomeMd, LIMITS.welcome),
       features: { free: pick('free'), live: pick('live'), tournaments: pick('tournaments'), medals: pick('medals') },
+      retention: {
+        games: days(r.games, DEFAULT_SETTINGS.retention.games),
+        tournaments: days(r.tournaments, DEFAULT_SETTINGS.retention.tournaments),
+      },
       impressumMd: cleanText(o.impressumMd, LIMITS.text),
       datenschutzMd: cleanText(o.datenschutzMd, LIMITS.text),
     },

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FEATURE_LIST, LIMITS, THEMES, themeVars, type Settings, type ThemeId } from '@/lib/branding';
+import { BOARD_THEMES, FEATURE_LIST, LIMITS, THEMES, boardVars, themeVars, type BoardThemeId, type Settings, type ThemeId } from '@/lib/branding';
 import { Markdown } from '@/lib/markdown';
 
 const field: React.CSSProperties = {
@@ -49,7 +49,7 @@ const SKELETON_DATENSCHUTZ = [
   '',
   '## Aufbewahrung',
   '',
-  'Beendete Partien und Turniere werden nach 90 Tagen automatisch gelöscht. Datensicherungen werden nach spätestens drei Monaten gelöscht.',
+  'Beendete Partien und Turniere werden nach der in den Einstellungen festgelegten Frist (Standard: 90 Tage) automatisch gelöscht. Datensicherungen werden nach spätestens drei Monaten gelöscht.',
   '',
   '## Keine Tracker',
   '',
@@ -67,11 +67,11 @@ export default function SettingsForm({ initial }: { initial: Settings }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const savedRef = useRef(false);
 
-  // Live-Vorschau des gewählten Farbschemas. Ohne Speichern wird der alte Zustand wiederhergestellt.
+  // Live-Vorschau von Farbschema und Brettfarben. Ohne Speichern wird der alte Zustand wiederhergestellt.
   useEffect(() => {
     savedRef.current = false;
     const root = document.documentElement;
-    const vars = themeVars(s.theme);
+    const vars: Record<string, string> = { ...themeVars(s.theme), ...boardVars(s.boardTheme) };
     const keys = Object.keys(vars);
     const prev = keys.map((k) => root.style.getPropertyValue(k));
     keys.forEach((k) => root.style.setProperty(k, vars[k]));
@@ -79,7 +79,7 @@ export default function SettingsForm({ initial }: { initial: Settings }) {
       if (savedRef.current) return;
       keys.forEach((k, i) => root.style.setProperty(k, prev[i]));
     };
-  }, [s.theme]);
+  }, [s.theme, s.boardTheme]);
 
   function set<K extends keyof Settings>(key: K, value: Settings[K]) {
     setS((prev) => ({ ...prev, [key]: value }));
@@ -144,6 +144,41 @@ export default function SettingsForm({ initial }: { initial: Settings }) {
             );
           })}
         </div>
+
+        <label>Brettfarben</label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.7rem' }}>
+          {BOARD_THEMES.map((b) => {
+            const active = s.boardTheme === b.id;
+            return (
+              <button
+                key={b.id}
+                type='button'
+                aria-pressed={active}
+                onClick={() => set('boardTheme', b.id as BoardThemeId)}
+                style={{ textAlign: 'left', padding: '0.6rem', borderRadius: 12, cursor: 'pointer', background: '#fff', border: active ? '3px solid #26221c' : '3px solid #e8ddc8', color: '#26221c', font: 'inherit' }}
+              >
+                <span style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderRadius: 6, overflow: 'hidden', marginBottom: 6 }}>
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <span key={i} style={{ height: 14, background: (Math.floor(i / 4) + (i % 4)) % 2 === 0 ? b.light : b.dark }} />
+                  ))}
+                </span>
+                <b>{b.label}</b>
+                {active ? ' ✓' : ''}
+              </button>
+            );
+          })}
+        </div>
+        <p className='muted' style={{ marginBottom: 0 }}>Die Brettfarben gelten für alle Schachbretter der Seite.</p>
+
+        <label htmlFor='wm'>Begrüßungstext (Markdown, optional, höchstens {LIMITS.welcome} Zeichen)</label>
+        <textarea id='wm' value={s.welcomeMd} maxLength={LIMITS.welcome} onChange={(e) => set('welcomeMd', e.target.value)} style={{ ...area, minHeight: 110 }} placeholder={'Willkommen in der Schach-AG!\n\nWir treffen uns mittwochs um 14:30 Uhr.'} />
+        <p className='muted' style={{ margin: '0.3rem 0 0' }}>Erscheint auf der Anmeldeseite und auf der Lernseite der Schüler. Leer lassen, um nichts anzuzeigen.</p>
+        {s.welcomeMd.trim() && (
+          <details style={{ marginTop: '0.4rem' }}>
+            <summary>Vorschau</summary>
+            <Markdown source={s.welcomeMd} />
+          </details>
+        )}
       </div>
 
       <div className='card' style={{ marginBottom: '1.2rem' }}>
@@ -159,6 +194,23 @@ export default function SettingsForm({ initial }: { initial: Settings }) {
             </span>
           </label>
         ))}
+      </div>
+
+      <div className='card' style={{ marginBottom: '1.2rem' }}>
+        <h2>Aufbewahrung</h2>
+        <p className='muted'>
+          Beendete Partien und Turniere werden nach dieser Zeit automatisch gelöscht ({LIMITS.retentionMin} bis {LIMITS.retentionMax} Tage). Bereits erstellte Datensicherungen enthalten die Daten bis zu ihrem eigenen Ablauf weiter.
+        </p>
+        <div style={{ display: 'flex', gap: '1.2rem', flexWrap: 'wrap' }}>
+          <div>
+            <label htmlFor='rg'>Live-Partien (Tage)</label>
+            <input id='rg' type='number' min={LIMITS.retentionMin} max={LIMITS.retentionMax} value={s.retention.games || ''} onChange={(e) => set('retention', { ...s.retention, games: Number(e.target.value) })} style={{ ...field, width: 140 }} />
+          </div>
+          <div>
+            <label htmlFor='rt'>Turniere (Tage)</label>
+            <input id='rt' type='number' min={LIMITS.retentionMin} max={LIMITS.retentionMax} value={s.retention.tournaments || ''} onChange={(e) => set('retention', { ...s.retention, tournaments: Number(e.target.value) })} style={{ ...field, width: 140 }} />
+          </div>
+        </div>
       </div>
 
       <div className='card' style={{ marginBottom: '1.2rem' }}>

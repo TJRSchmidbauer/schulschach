@@ -74,7 +74,7 @@ function ClockBox({ label, ms, active }: { label: string; ms: number; active: bo
         alignItems: 'center',
         padding: '0.5rem 0.9rem',
         borderRadius: 10,
-        background: active ? '#2f7d5c' : '#e7dfd0',
+        background: active ? 'var(--accent)' : '#e7dfd0',
         color: active ? '#ffffff' : '#26221c',
         fontWeight: 700,
       }}
@@ -168,11 +168,12 @@ export default function LiveBoard({ gameId, role, myId, backHref }: Props) {
   const shownFen =
     atLive && pending && pending.len === movesLen ? pending.fen : timeline.fens[idx] ?? game.fen;
 
+  // Der letzte Zug wird mit einem Schatten markiert, damit die Brettfarben aus den Einstellungen sichtbar bleiben.
   const last = timeline.squares[idx];
   const squareStyles: Record<string, React.CSSProperties> = {};
   if (last) {
-    squareStyles[last.from] = { background: 'rgba(255, 213, 79, 0.55)' };
-    squareStyles[last.to] = { background: 'rgba(255, 213, 79, 0.55)' };
+    squareStyles[last.from] = { boxShadow: 'inset 0 0 0 100px rgba(255, 213, 79, 0.55)' };
+    squareStyles[last.to] = { boxShadow: 'inset 0 0 0 100px rgba(255, 213, 79, 0.55)' };
   }
 
   let opponentAlias = 'dein Gegner';
@@ -221,6 +222,8 @@ export default function LiveBoard({ gameId, role, myId, backHref }: Props) {
               onPieceDrop={handleDrop}
               isDraggablePiece={({ piece }) => canMove && piece.startsWith(myColor ?? 'x')}
               customSquareStyles={squareStyles}
+              customDarkSquareStyle={{ backgroundColor: 'var(--board-dark)' }}
+              customLightSquareStyle={{ backgroundColor: 'var(--board-light)' }}
             />
           </div>
           <ClockBox label={nameOf(bottomColor)} ms={msOf(bottomColor)} active={active && game.turn === bottomColor} />
@@ -323,7 +326,7 @@ export default function LiveBoard({ gameId, role, myId, backHref }: Props) {
                     <span className='muted'>{no}{isWhite ? '.' : '…'} </span>
                   )}
                   <button
-                    style={{ ...smallBtn, background: idx === ply ? '#2f7d5c' : '#efe6d2', color: idx === ply ? '#ffffff' : '#54452a', marginRight: 4 }}
+                    style={{ ...smallBtn, background: idx === ply ? 'var(--accent)' : '#efe6d2', color: idx === ply ? '#ffffff' : '#54452a', marginRight: 4 }}
                     onClick={() => setViewIdx(ply >= latest ? null : ply)}
                   >
                     {san}

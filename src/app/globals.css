@@ -11,6 +11,8 @@
   --accent-tint-border: #adddc3;
   --warn: #c8a951;
   --bad: #b34747;
+  --board-light: #f0d9b5;
+  --board-dark: #b58863;
   --radius: 16px;
 }
 
@@ -169,3 +171,11 @@ th { font-size: 0.75rem; text-transform: uppercase; color: var(--muted); letter-
 .md a { color: var(--accent-dark); }
 .md code { background: #efe6d2; padding: 0.05rem 0.35rem; border-radius: 6px; }
 .md hr { border: none; border-top: 1px solid #e8ddc8; margin: 1.2rem 0; }
+
+/* Brettfarben aus den Einstellungen: react-chessboard setzt data-square an jedes Feld. */
+[data-square='a2'],[data-square='a4'],[data-square='a6'],[data-square='a8'],[data-square='b1'],[data-square='b3'],[data-square='b5'],[data-square='b7'],[data-square='c2'],[data-square='c4'],[data-square='c6'],[data-square='c8'],[data-square='d1'],[data-square='d3'],[data-square='d5'],[data-square='d7'],[data-square='e2'],[data-square='e4'],[data-square='e6'],[data-square='e8'],[data-square='f1'],[data-square='f3'],[data-square='f5'],[data-square='f7'],[data-square='g2'],[data-square='g4'],[data-square='g6'],[data-square='g8'],[data-square='h1'],[data-square='h3'],[data-square='h5'],[data-square='h7'] {
+  background-color: var(--board-light) !important;
+}
+[data-square='a1'],[data-square='a3'],[data-square='a5'],[data-square='a7'],[data-square='b2'],[data-square='b4'],[data-square='b6'],[data-square='b8'],[data-square='c1'],[data-square='c3'],[data-square='c5'],[data-square='c7'],[data-square='d2'],[data-square='d4'],[data-square='d6'],[data-square='d8'],[data-square='e1'],[data-square='e3'],[data-square='e5'],[data-square='e7'],[data-square='f2'],[data-square='f4'],[data-square='f6'],[data-square='f8'],[data-square='g1'],[data-square='g3'],[data-square='g5'],[data-square='g7'],[data-square='h2'],[data-square='h4'],[data-square='h6'],[data-square='h8'] {
+  background-color: var(--board-dark) !important;
+}

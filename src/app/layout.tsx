@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
+import OnlyAt from '@/components/OnlyAt';
 import { getSession } from '@/lib/auth';
+import { boardVars, themeVars } from '@/lib/branding';
+import { Markdown } from '@/lib/markdown';
 import { getSettings } from '@/lib/settings';
-import { themeVars } from '@/lib/branding';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
@@ -39,9 +41,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const hasImpressum = settings.impressumMd.trim().length > 0;
   const hasDatenschutz = settings.datenschutzMd.trim().length > 0;
   const showFooter = hasImpressum || hasDatenschutz || (isTrainer && (!hasImpressum || !hasDatenschutz));
+  const vars = { ...themeVars(settings.theme), ...boardVars(settings.boardTheme) };
 
   return (
-    <html lang='de' style={themeVars(settings.theme) as unknown as React.CSSProperties}>
+    <html lang='de' style={vars as unknown as React.CSSProperties}>
       <head>{css ? <style>{css}</style> : null}</head>
       <body>
         <header className='topbar'>
@@ -56,7 +59,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </Link>
           ) : null}
         </header>
-        <main className='page'>{children}</main>
+        <main className='page'>
+          {settings.welcomeMd.trim() ? (
+            <OnlyAt path='/'>
+              <div className='card' style={{ marginBottom: '1.2rem' }}>
+                <Markdown source={settings.welcomeMd} />
+              </div>
+            </OnlyAt>
+          ) : null}
+          {children}
+        </main>
         {showFooter ? (
           <footer className='site-footer'>
             {hasImpressum ? <Link href='/impressum'>Impressum</Link> : null}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ALIAS_STYLES, generateAliases, type AliasStyle } from '@/lib/aliasgen';
 import { parseNameList } from '@/lib/csv';
 
 const field: React.CSSProperties = {
@@ -29,6 +30,8 @@ export default function ImportStudents() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  const [genCount, setGenCount] = useState(10);
+  const [genStyle, setGenStyle] = useState<AliasStyle>('figuren');
 
   const names = useMemo(() => parseNameList(text, 150), [text]);
   const tooShort = names.filter((n) => n.length < 2 || n.length > 50);
@@ -46,6 +49,14 @@ export default function ImportStudents() {
     setError(null);
     setText(await file.text());
     input.value = '';
+  }
+
+  function generate() {
+    const existing = parseNameList(text, 500);
+    const count = Math.max(1, Math.min(60, Math.floor(genCount) || 1));
+    const fresh = generateAliases(count, genStyle, existing);
+    setText([...existing, ...fresh].join('\n'));
+    setError(null);
   }
 
   async function submit() {
@@ -118,7 +129,17 @@ export default function ImportStudents() {
       </p>
       <label htmlFor='csvf'>CSV- oder Textdatei wählen</label>
       <input id='csvf' type='file' accept='.csv,.txt,text/csv,text/plain' onChange={(e) => void onFile(e)} />
-      <label htmlFor='csvt'>Oder Namen hier einfügen</label>
+
+      <label>Oder Spitznamen erzeugen lassen</label>
+      <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <input type='number' min={1} max={60} value={genCount} onChange={(e) => setGenCount(Number(e.target.value))} aria-label='Anzahl' style={{ ...field, width: 90, minHeight: 0 }} />
+        <select value={genStyle} onChange={(e) => setGenStyle(e.target.value as AliasStyle)} aria-label='Stil' style={{ ...field, width: 'auto', minHeight: 0 }}>
+          {ALIAS_STYLES.map((a) => <option key={a.id} value={a.id}>{a.label} (z. B. {a.example})</option>)}
+        </select>
+        <button type='button' className='btn btn-secondary' style={{ width: 'auto', marginTop: 0, padding: '0.6rem 1.2rem' }} onClick={generate}>Namen erzeugen</button>
+      </div>
+
+      <label htmlFor='csvt'>Namen hier einfügen oder bearbeiten</label>
       <textarea id='csvt' value={text} onChange={(e) => setText(e.target.value)} style={field} placeholder={'Springer-01\nTurm-Leo\nBauer-Mia'} />
       <p><b>{valid.length}</b> Namen erkannt{tooShort.length > 0 ? `, ${tooShort.length} ungültig (2 bis 50 Zeichen)` : ''}.</p>
       {valid.length > 0 && <p className='muted'>Vorschau: {valid.slice(0, 12).join(', ')}{valid.length > 12 ? ' …' : ''}</p>}

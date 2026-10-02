@@ -82,6 +82,12 @@ export default async function LearnPage() {
         <Link className="btn" href="/free">Aufgaben aussuchen</Link>
       </div>
 
+      <div className="card" style={{ marginBottom: '1.2rem' }}>
+        <h2>🏅 Meine Medaillen</h2>
+        <p className="muted">Sammle Medaillen für gelöste Aufgaben und drucke deine Urkunde aus.</p>
+        <Link className="btn" href="/awards">Medaillen ansehen</Link>
+      </div>
+
       {paths.map((path) => (
         <div className="card" key={path.id} style={{ marginBottom: '1.2rem' }}>
           <h2>{path.title}</h2>

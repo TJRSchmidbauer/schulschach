@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { achievementText, computeStats, evaluateMedals } from '@/lib/medals';
+import TrainerNav from '@/app/trainer/TrainerNav';
 import TrainerCertificate from './TrainerCertificate';
 
 export default async function TrainerCertificates() {
@@ -30,13 +30,13 @@ export default async function TrainerCertificates() {
 
   return (
     <div>
-      <p><Link href="/trainer">← Trainer-Bereich</Link></p>
       <div className="card" style={{ marginBottom: '1.2rem' }}>
         <h1>Urkunden</h1>
         <p className="muted" style={{ marginBottom: 0 }}>
           Wähle ein Alias. Den echten Namen trägst du nur im Browser ein – er wird nicht an den Server gesendet.
         </p>
       </div>
+      <TrainerNav active="certificates" />
       {options.length === 0 ? (
         <div className="card"><p className="muted">Es gibt noch keine aktiven Schülerinnen und Schüler.</p></div>
       ) : (

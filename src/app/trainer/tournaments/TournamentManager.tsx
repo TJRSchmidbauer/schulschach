@@ -157,7 +157,7 @@ export default function TournamentManager({ id }: { id: string }) {
                               key={r}
                               disabled={busy || finished}
                               onClick={() => void setResult(p.id, r)}
-                              style={{ ...smallBtn, background: p.result === r ? '#2f7d5c' : '#efe6d2', color: p.result === r ? '#ffffff' : '#54452a' }}
+                              style={{ ...smallBtn, background: p.result === r ? 'var(--accent)' : '#efe6d2', color: p.result === r ? '#ffffff' : '#54452a' }}
                             >
                               {RESULT_LABEL[r]}
                             </button>

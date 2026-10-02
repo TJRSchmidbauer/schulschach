@@ -6,7 +6,7 @@
 
 - **Name links oben:** 2 bis 40 Zeichen. Das letzte Wort wird farbig hervorgehoben (zum Beispiel „SchulSchach **AG**“). Der Name steht auch im Titel des Browser-Tabs.
 - **Untertitel:** Optional, erscheint rechts oben (zum Beispiel der Schulname).
-- **Farbschema:** Holz und Grün (Standard), Ozean, Beere, Sonne, Kirsche, Schiefer. Die Auswahl zeigt sofort eine Vorschau und wird erst mit „Einstellungen speichern“ übernommen. Alle Schemata sind hell und erreichen für Text mindestens 4,5:1 Kontrast (WCAG 2.2, Kriterium 1.4.3).
+- **Farbschema:** Holz und Grün (Standard), Ozean, Beere, Sonne, Kirsche, Schiefer. Die Auswahl zeigt sofort eine Vorschau und wird erst mit „Einstellungen speichern“ übernommen. Alle Schemata sind hell und erreichen für Text mindestens 4,5:1 Kontrast (WCAG 2.2, Kriterium 1.4.3). Das Schema gilt auch für die Turnierverwaltung und die Beamer-Ansicht.
 - **Brettfarben:** Klassisch (Holz), Grün, Blau, Lila, Grau, Hoher Kontrast. Sie gelten für alle Schachbretter. Im Live-Brett werden sie direkt gesetzt, bei den übrigen Brettern über Stylesheet-Regeln für die Felder (`data-square`). Der letzte Zug im Live-Brett wird mit einem gelben Schatten markiert, damit er auf jedem Brett sichtbar bleibt.
 - **Begrüßungstext:** Markdown, höchstens 2000 Zeichen. Er erscheint auf der Anmeldeseite und auf der Lernseite der Schüler. Ein leeres Feld zeigt nichts an.
 
@@ -14,7 +14,10 @@ Hinweis: Einige Bereiche haben ihre Farben noch fest im Code (Turnierverwaltung,
 
 ## Funktionen ein- und ausschalten
 
-Freies Üben, Live-Partien, Turniere und Medaillen lassen sich einzeln ausschalten. Links dorthin verschwinden, und beim direkten Aufruf erscheint ein Hinweis (Trainer sehen einen Link zu den Einstellungen). Wichtig: Das blendet die Oberfläche aus. Die Schnittstellen im Hintergrund bleiben aktiv.
+Freies Üben, Live-Partien, Turniere und Medaillen lassen sich einzeln ausschalten. Links dorthin verschwinden, und beim direkten Aufruf erscheint ein Hinweis (Trainer sehen einen Link zu den Einstellungen).
+
+- **Live-Partien und Turniere** sind zusätzlich im Server gesperrt: Ist die Funktion ausgeschaltet, werden keine neuen Partien angelegt, angenommen oder angesetzt und keine neuen Turniere oder Turnierrunden erzeugt. Bereits laufende Partien können zu Ende gespielt werden, vorhandene Turniere lassen sich ansehen, abschließen oder löschen.
+- **Freies Üben und Medaillen** werden nur in der Oberfläche ausgeblendet. Die Schnittstellen im Hintergrund bleiben aktiv.
 
 ## Live-Partien: Bedenkzeiten
 

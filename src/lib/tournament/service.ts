@@ -25,6 +25,12 @@ export type Fail = { error: string; status: number };
 export const fail = (error: string, status: number): Fail => ({ error, status });
 export const isFail = (x: unknown): x is Fail => typeof x === 'object' && x !== null && 'error' in x;
 
+// Ist die Funktion „Turniere“ ausgeschaltet, entstehen keine neuen Turniere oder Runden.
+async function tournamentsOff(): Promise<Fail | null> {
+  const settings = await getSettings();
+  return settings.features.tournaments ? null : fail('Turniere sind ausgeschaltet.', 403);
+}
+
 export async function housekeeping() {
   const now = Date.now();
   if (now - lastCleanup < 60 * 60 * 1000) return;
@@ -84,6 +90,8 @@ export function view(t: TournamentFull) {
 }
 
 export async function createTournament(titleRaw: string, roundsRaw: number, aliasesRaw: string[]) {
+  const off = await tournamentsOff();
+  if (off) return off;
   const title = titleRaw.trim();
   if (title.length < 2 || title.length > 100) return fail('Der Turniername muss 2 bis 100 Zeichen haben.', 400);
   const aliases = aliasesRaw.map((x) => x.trim()).filter(Boolean);
@@ -111,6 +119,8 @@ export async function createTournament(titleRaw: string, roundsRaw: number, alia
 }
 
 export async function generateRound(id: string) {
+  const off = await tournamentsOff();
+  if (off) return off;
   const t = await getTournament(id);
   if (!t) return fail('Turnier nicht gefunden.', 404);
   if (t.status === 'FINISHED') return fail('Dieses Turnier ist beendet.', 409);

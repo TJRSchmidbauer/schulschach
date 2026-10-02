@@ -45,11 +45,11 @@ export default function Beamer({ id }: { id: string }) {
   const big = manyBoards ? '1.35rem' : '2rem';
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#f4efe6', overflow: 'auto', padding: '1rem 2rem' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)', overflow: 'auto', padding: '1rem 2rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
         <h1 style={{ fontSize: '2.4rem', margin: 0, flex: 1 }}>{t ? t.title : 'Turnier'}</h1>
-        <button style={{ ...tab, background: view === 'pairings' ? '#2f7d5c' : '#e7dfd0', color: view === 'pairings' ? '#ffffff' : '#26221c' }} onClick={() => setView('pairings')}>Paarungen</button>
-        <button style={{ ...tab, background: view === 'standings' ? '#2f7d5c' : '#e7dfd0', color: view === 'standings' ? '#ffffff' : '#26221c' }} onClick={() => setView('standings')}>Rangliste</button>
+        <button style={{ ...tab, background: view === 'pairings' ? 'var(--accent)' : '#e7dfd0', color: view === 'pairings' ? '#ffffff' : '#26221c' }} onClick={() => setView('pairings')}>Paarungen</button>
+        <button style={{ ...tab, background: view === 'standings' ? 'var(--accent)' : '#e7dfd0', color: view === 'standings' ? '#ffffff' : '#26221c' }} onClick={() => setView('standings')}>Rangliste</button>
         <label style={{ display: 'inline-flex', gap: '0.3rem', margin: 0, fontSize: '1rem' }}>
           <input type='checkbox' checked={auto} onChange={(e) => setAuto(e.target.checked)} /> automatisch wechseln
         </label>
@@ -68,14 +68,14 @@ export default function Beamer({ id }: { id: string }) {
               <div style={{ display: 'grid', gridTemplateColumns: manyBoards ? '1fr 1fr' : '1fr', gap: '0.4rem 2.5rem' }}>
                 {round.pairings.map((p) => (
                   <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '3.5rem 1fr 7rem 1fr', gap: '0.8rem', alignItems: 'center', fontSize: big, padding: '0.3rem 0', borderBottom: '1px solid #ddd3c3' }}>
-                    <span style={{ color: '#7b7060' }}>{p.board}</span>
+                    <span style={{ color: 'var(--muted)' }}>{p.board}</span>
                     <b>{nm(p.whiteId)}</b>
                     <span style={{ textAlign: 'center', fontWeight: 700 }}>{p.blackId ? (p.result === 'UNPLAYED' ? '–' : RESULT_LABEL[p.result]) : 'Freilos'}</span>
                     <b>{nm(p.blackId)}</b>
                   </div>
                 ))}
               </div>
-              <p style={{ fontSize: '1rem', color: '#7b7060' }}>Weiß steht links, Schwarz rechts.</p>
+              <p style={{ fontSize: '1rem', color: 'var(--muted)' }}>Weiß steht links, Schwarz rechts.</p>
             </div>
           )}
         </div>
@@ -86,7 +86,7 @@ export default function Beamer({ id }: { id: string }) {
           <h2 style={{ fontSize: '2rem' }}>Rangliste{round ? ` nach Runde ${round.number}` : ''}</h2>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: manyPlayers ? '1.1rem' : '1.8rem' }}>
             <thead>
-              <tr style={{ textAlign: 'left', color: '#7b7060' }}>
+              <tr style={{ textAlign: 'left', color: 'var(--muted)' }}>
                 <th>Platz</th><th>Alias</th><th>Punkte</th><th>Buchholz</th><th>Fein-B.</th><th>Sonneborn-B.</th>
               </tr>
             </thead>

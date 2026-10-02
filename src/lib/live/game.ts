@@ -29,6 +29,13 @@ const STALE_PRESTART_MS = 10 * MINUTE;
 export const RETENTION_DAYS = 90;
 let lastCleanup = 0;
 
+// Ist die Funktion „Live-Partien“ in den Einstellungen ausgeschaltet,
+// entstehen keine neuen Partien. Bereits laufende Partien können enden.
+async function liveOff(): Promise<Fail | null> {
+  const settings = await getSettings();
+  return settings.features.live ? null : fail('Live-Partien sind ausgeschaltet.', 403);
+}
+
 export function splitMoves(moves: string): string[] {
   return moves ? moves.split(' ') : [];
 }
@@ -194,6 +201,8 @@ export function checkFen(input: string): { fen: string } | Fail {
 }
 
 export async function createChallenge(userId: string, controlId: string, pref: string): Promise<GameRow | Fail> {
+  const off = await liveOff();
+  if (off) return off;
   const control = findControl(controlId);
   if (!control) return fail('Unbekannte Bedenkzeit.', 400);
   const allowed = (await getExtras()).live.controls;
@@ -218,6 +227,8 @@ export async function createChallenge(userId: string, controlId: string, pref: s
 }
 
 export async function acceptChallenge(userId: string, gameId: string): Promise<GameRow | Fail> {
+  const off = await liveOff();
+  if (off) return off;
   const g = await getGame(gameId);
   if (!g || g.status !== 'WAITING') return fail('Diese Herausforderung gibt es nicht mehr.', 404);
   if (g.whiteId === userId || g.blackId === userId) return fail('Das ist deine eigene Herausforderung.', 400);
@@ -252,6 +263,8 @@ export async function createPairing(input: {
   fen: string | null;
   randomColors: boolean;
 }): Promise<GameRow | Fail> {
+  const off = await liveOff();
+  if (off) return off;
   const control = findControl(input.controlId);
   if (!control) return fail('Unbekannte Bedenkzeit.', 400);
   if (input.whiteId === input.blackId) return fail('Bitte zwei verschiedene Schüler wählen.', 400);
